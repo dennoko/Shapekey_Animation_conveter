@@ -32,47 +32,26 @@ public partial class Shapekey_animation_converter
 
         EditorGUILayout.Space();
 
-        // Direct assignment fields
+        // Direct assignment fields (Mesh only)
         EditorGUILayout.LabelField("対象（直接割り当てかドラッグ＆ドロップ）:");
         EditorGUI.BeginChangeCheck();
-        var newObj = EditorGUILayout.ObjectField("GameObject", targetObject, typeof(GameObject), true) as GameObject;
-        var newSmr = EditorGUILayout.ObjectField("SkinnedMeshRenderer", targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
+        var newSmr = EditorGUILayout.ObjectField(new GUIContent("メッシュ", "SkinnedMeshRenderer コンポーネントを指定します。"), targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
         if (EditorGUI.EndChangeCheck())
         {
-            if (newSmr != null)
-            {
-                targetSkinnedMesh = newSmr;
-                targetObject = newSmr.gameObject;
-            }
-            else if (newObj != null)
-            {
-                targetObject = newObj;
-                targetSkinnedMesh = targetObject.GetComponentInChildren<SkinnedMeshRenderer>();
-            }
-            else
-            {
-                targetObject = null;
-                targetSkinnedMesh = null;
-            }
+            targetSkinnedMesh = newSmr;
+            targetObject = targetSkinnedMesh ? targetSkinnedMesh.gameObject : null;
             RefreshBlendList();
             Repaint();
         }
 
-        EditorGUILayout.LabelField("または下に SkinnedMeshRenderer を含む GameObject をドラッグしてください:");
+        EditorGUILayout.LabelField("または下にメッシュをドラッグしてください:");
         var rect = GUILayoutUtility.GetRect(0, 50, GUILayout.ExpandWidth(true));
         GUI.Box(rect, targetObject ? targetObject.name : "Drag target here");
         HandleDragAndDrop(rect);
 
         if (targetSkinnedMesh == null)
         {
-            if (targetObject)
-            {
-                EditorGUILayout.HelpBox("選択したオブジェクトに SkinnedMeshRenderer が見つかりません。SkinnedMeshRenderer を含む GameObject を渡してください。", MessageType.Warning);
-            }
-            else
-            {
-                EditorGUILayout.HelpBox("対象が選択されていません。", MessageType.Info);
-            }
+            EditorGUILayout.HelpBox("対象のメッシュが選択されていません。SkinnedMeshRenderer を指定してください。", MessageType.Info);
         }
 
         if (blendNames.Count > 0)
@@ -174,14 +153,7 @@ public partial class Shapekey_animation_converter
                     DragAndDrop.AcceptDrag();
                     foreach (var obj in DragAndDrop.objectReferences)
                     {
-                        if (obj is GameObject go)
-                        {
-                            targetObject = go;
-                            RefreshTargetFromObject();
-                            Repaint();
-                            break;
-                        }
-                        else if (obj is SkinnedMeshRenderer smr)
+                        if (obj is SkinnedMeshRenderer smr)
                         {
                             targetSkinnedMesh = smr;
                             targetObject = smr.gameObject;

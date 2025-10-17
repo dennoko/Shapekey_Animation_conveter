@@ -46,14 +46,19 @@ public partial class Shapekey_animation_converter
         var last = EditorPrefs.GetString(PREF_LAST_TARGET, string.Empty);
         if (!string.IsNullOrEmpty(last))
         {
-            targetObject = EditorUtility.InstanceIDToObject(Convert.ToInt32(last)) as GameObject;
-            RefreshTargetFromObject();
+            var lastObj = EditorUtility.InstanceIDToObject(Convert.ToInt32(last)) as SkinnedMeshRenderer;
+            if (lastObj != null)
+            {
+                targetSkinnedMesh = lastObj;
+                targetObject = targetSkinnedMesh.gameObject; // internal convenience
+                RefreshBlendList();
+            }
         }
     }
 
     void OnDisable()
     {
-        if (targetObject) EditorPrefs.SetString(PREF_LAST_TARGET, targetObject.GetInstanceID().ToString());
+        if (targetSkinnedMesh) EditorPrefs.SetString(PREF_LAST_TARGET, targetSkinnedMesh.GetInstanceID().ToString());
         EditorPrefs.SetString(PREF_SAVE_FOLDER, saveFolder);
         EditorPrefs.SetInt(PREF_SEARCH_MODE, (int)searchMode);
         EditorPrefs.SetString(PREF_SEARCH_TEXT, searchText);
