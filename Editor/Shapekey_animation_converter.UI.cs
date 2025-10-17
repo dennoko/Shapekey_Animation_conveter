@@ -86,12 +86,7 @@ public partial class Shapekey_animation_converter
                 EditorGUILayout.HelpBox("既存アニメーションを選択すると、そのアニメに含まれるブレンドシェイプのみを書き出します。", MessageType.Info);
             }
 
-            // Exclude zero (disabled when aligning to clip)
-            EditorGUI.BeginDisabledGroup(alignToExistingClipKeys);
-            EditorGUILayout.BeginHorizontal();
-            excludeZero = EditorGUILayout.ToggleLeft("値が0のシェイプをアニメーションから除外する", excludeZero);
-            EditorGUILayout.EndHorizontal();
-            EditorGUI.EndDisabledGroup();
+            // 値0除外機能はオミットしました
 
             // 検索 UI
             EditorGUILayout.BeginHorizontal();

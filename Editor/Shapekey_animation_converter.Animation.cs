@@ -89,7 +89,6 @@ public partial class Shapekey_animation_converter
         foreach (var i in includeIndices)
         {
             float current = targetSkinnedMesh.GetBlendShapeWeight(i);
-            if (!alignToExistingClipKeys && excludeZero && Mathf.Approximately(current, 0f)) continue;
 
             string prop = "blendShape." + blendNames[i];
             var binding = new EditorCurveBinding();

@@ -15,7 +15,6 @@ public partial class Shapekey_animation_converter
     // Pref keys
     const string PREF_SAVE_FOLDER = "ShapekeyConverter_SaveFolder";
     const string PREF_LAST_TARGET = "ShapekeyConverter_LastTarget";
-    const string PREF_EXCLUDE_ZERO = "ShapekeyConverter_ExcludeZero";
     const string PREF_SEARCH_MODE = "ShapekeyConverter_SearchMode";
     const string PREF_SEARCH_TEXT = "ShapekeyConverter_SearchText";
     const string PREF_SNAPSHOT = "ShapekeyConverter_Snapshot";
@@ -29,7 +28,6 @@ public partial class Shapekey_animation_converter
     Vector2 scroll;
     List<string> blendNames = new List<string>();
     List<float> blendValues = new List<float>();
-    bool excludeZero = false;
     string searchText = string.Empty;
     enum SearchMode { Prefix = 0, Contains = 1 }
     SearchMode searchMode = SearchMode.Prefix;
@@ -42,7 +40,6 @@ public partial class Shapekey_animation_converter
     void OnEnable()
     {
         saveFolder = EditorPrefs.GetString(PREF_SAVE_FOLDER, saveFolder);
-        excludeZero = EditorPrefs.GetBool(PREF_EXCLUDE_ZERO, false);
         searchMode = (SearchMode)EditorPrefs.GetInt(PREF_SEARCH_MODE, (int)SearchMode.Prefix);
         searchText = EditorPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
         alignToExistingClipKeys = EditorPrefs.GetBool(PREF_ALIGN_TO_CLIP, false);
@@ -59,7 +56,6 @@ public partial class Shapekey_animation_converter
     {
         if (targetObject) EditorPrefs.SetString(PREF_LAST_TARGET, targetObject.GetInstanceID().ToString());
         EditorPrefs.SetString(PREF_SAVE_FOLDER, saveFolder);
-        EditorPrefs.SetBool(PREF_EXCLUDE_ZERO, excludeZero);
         EditorPrefs.SetInt(PREF_SEARCH_MODE, (int)searchMode);
         EditorPrefs.SetString(PREF_SEARCH_TEXT, searchText);
         EditorPrefs.SetBool(PREF_ALIGN_TO_CLIP, alignToExistingClipKeys);
