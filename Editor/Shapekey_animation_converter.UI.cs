@@ -124,6 +124,8 @@ public partial class Shapekey_animation_converter
             scroll = EditorGUILayout.BeginScrollView(scroll);
             for (int i = 0; i < blendNames.Count; i++)
             {
+                // Always hide VRChat control shapekeys from the list without altering indices
+                if (IsVrcShapeName(blendNames[i])) continue;
                 // filter by search
                 if (!string.IsNullOrEmpty(searchText))
                 {

@@ -200,4 +200,15 @@ public partial class Shapekey_animation_converter
         parts.Reverse();
         return string.Join("/", parts.ToArray());
     }
+
+    // Helper: detect VRChat control shapekeys that should always be ignored/hidden
+    static bool IsVrcShapeName(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return false;
+        name = name.Trim();
+        // Hide names starting with "vrc." or ".vrc" (case-insensitive)
+        if (name.StartsWith("vrc.", StringComparison.OrdinalIgnoreCase)) return true;
+        if (name.StartsWith(".vrc", StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
 }

@@ -30,6 +30,9 @@ public partial class Shapekey_animation_converter
         var includeIndices = new List<int>();
         for (int i = 0; i < blendNames.Count; i++) includeIndices.Add(i);
 
+        // Always exclude VRChat control shapekeys from saving
+        includeIndices.RemoveAll(idx => IsVrcShapeName(blendNames[idx]));
+
         // Filter by search
         if (excludeNonSearchMatches && !string.IsNullOrEmpty(searchText))
         {
