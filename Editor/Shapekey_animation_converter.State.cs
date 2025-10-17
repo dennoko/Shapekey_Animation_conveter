@@ -27,6 +27,7 @@ public partial class Shapekey_animation_converter
     Vector2 scroll;
     List<string> blendNames = new List<string>();
     List<float> blendValues = new List<float>();
+    List<bool> includeFlags = new List<bool>();
     string searchText = string.Empty;
     enum SearchMode { Prefix = 0, Contains = 1 }
     SearchMode searchMode = SearchMode.Prefix;
@@ -90,6 +91,7 @@ public partial class Shapekey_animation_converter
     {
         blendNames.Clear();
         blendValues.Clear();
+        includeFlags.Clear();
         if (targetSkinnedMesh == null || targetSkinnedMesh.sharedMesh == null) return;
         var mesh = targetSkinnedMesh.sharedMesh;
         int count = mesh.blendShapeCount;
@@ -97,9 +99,23 @@ public partial class Shapekey_animation_converter
         {
             blendNames.Add(mesh.GetBlendShapeName(i));
             blendValues.Add(targetSkinnedMesh.GetBlendShapeWeight(i));
+            includeFlags.Add(true); // default include
         }
         // Try to restore saved values for this mesh/instance
         LoadBlendValuesPrefs();
+        // Try to restore include flags for this mesh/instance
+        LoadIncludeFlagsPrefs();
+        // Ensure includeFlags length matches
+        if (includeFlags.Count != blendNames.Count)
+        {
+            var old = includeFlags;
+            includeFlags = new List<bool>(blendNames.Count);
+            for (int i = 0; i < blendNames.Count; i++)
+            {
+                bool val = i < old.Count ? old[i] : true;
+                includeFlags.Add(val);
+            }
+        }
         // auto create snapshot at load
         CreateSnapshot(loadTime: true);
     }
@@ -185,6 +201,39 @@ public partial class Shapekey_animation_converter
                     blendValues[i] = f;
                     if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, f);
                 }
+            }
+        }
+        catch { }
+    }
+
+    void SaveIncludeFlagsPrefs()
+    {
+        try
+        {
+            string key = GetBlendPrefsKey();
+            if (string.IsNullOrEmpty(key)) return;
+            key += "|IncludeFlags";
+            var parts = new string[includeFlags.Count];
+            for (int i = 0; i < includeFlags.Count; i++) parts[i] = includeFlags[i] ? "1" : "0";
+            EditorPrefs.SetString(key, string.Join(",", parts));
+        }
+        catch { }
+    }
+
+    void LoadIncludeFlagsPrefs()
+    {
+        try
+        {
+            string key = GetBlendPrefsKey();
+            if (string.IsNullOrEmpty(key)) return;
+            key += "|IncludeFlags";
+            if (!EditorPrefs.HasKey(key)) return;
+            var s = EditorPrefs.GetString(key);
+            if (string.IsNullOrEmpty(s)) return;
+            var parts = s.Split(',');
+            for (int i = 0; i < parts.Length && i < includeFlags.Count; i++)
+            {
+                includeFlags[i] = parts[i] == "1" || parts[i].Equals("true", StringComparison.OrdinalIgnoreCase);
             }
         }
         catch { }

@@ -26,36 +26,19 @@ public partial class Shapekey_animation_converter
         var clip = new AnimationClip();
         clip.frameRate = 60;
 
-        // Determine indices to include based on options
+        // Determine indices to include based on per-shape flags
         var includeIndices = new List<int>();
-        for (int i = 0; i < blendNames.Count; i++) includeIndices.Add(i);
+        for (int i = 0; i < blendNames.Count; i++)
+        {
+            if (i < includeFlags.Count && includeFlags[i]) includeIndices.Add(i);
+        }
 
         // Always exclude VRChat control shapekeys from saving
         includeIndices.RemoveAll(idx => IsVrcShapeName(blendNames[idx]));
 
         // 検索一致による保存除外機能は削除しました
 
-        // Align to existing clip key set
-        if (alignToExistingClipKeys)
-        {
-            if (baseAlignClip == null)
-            {
-                EditorUtility.DisplayDialog("警告", "既存アニメーションに揃えるオプションが有効ですが、ベースアニメーションクリップが選択されていません。全てのキーを対象にします。", "OK");
-            }
-            else
-            {
-                var clipBindings = AnimationUtility.GetCurveBindings(baseAlignClip);
-                var namesInClip = new HashSet<string>();
-                foreach (var b in clipBindings)
-                {
-                    if (b.type != typeof(SkinnedMeshRenderer)) continue;
-                    if (!b.propertyName.StartsWith("blendShape.")) continue;
-                    string shapeName = b.propertyName.Substring("blendShape.".Length);
-                    if (!string.IsNullOrEmpty(shapeName)) namesInClip.Add(shapeName);
-                }
-                includeIndices.RemoveAll(idx => !namesInClip.Contains(blendNames[idx]));
-            }
-        }
+        // Align option no longer forces inclusion; use baseAlignClip only for path reuse and via the UI button
 
         // Optional: map shape -> paths from existing clip to reuse binding.path
         Dictionary<string, List<string>> shapeToPaths = null;

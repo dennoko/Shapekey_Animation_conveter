@@ -67,6 +67,28 @@ public partial class Shapekey_animation_converter
                 {
                     EditorGUILayout.HelpBox("ベースアニメーションを選択すると、そのアニメに含まれるブレンドシェイプのみを書き出します。", MessageType.Info);
                 }
+                else
+                {
+                    if (GUILayout.Button("ベースアニメのキーを反映", GUILayout.Height(22)))
+                    {
+                        // Build set of names included in baseAlignClip
+                        var names = new System.Collections.Generic.HashSet<string>();
+                        foreach (var b in AnimationUtility.GetCurveBindings(baseAlignClip))
+                        {
+                            if (b.type != typeof(SkinnedMeshRenderer)) continue;
+                            if (!b.propertyName.StartsWith("blendShape.")) continue;
+                            var shape = b.propertyName.Substring("blendShape.".Length);
+                            if (!string.IsNullOrEmpty(shape)) names.Add(shape);
+                        }
+                        // Apply to includeFlags: included => true; others => false, but keep vrc.* always false
+                        for (int i = 0; i < blendNames.Count; i++)
+                        {
+                            if (IsVrcShapeName(blendNames[i])) { includeFlags[i] = false; continue; }
+                            includeFlags[i] = names.Contains(blendNames[i]);
+                        }
+                        SaveIncludeFlagsPrefs();
+                    }
+                }
             }
 
             // 値0除外機能はオミットしました
@@ -115,7 +137,11 @@ public partial class Shapekey_animation_converter
                     bool ok = searchMode == SearchMode.Prefix ? name.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) : name.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
                     if (!ok) continue;
                 }
+                EditorGUILayout.BeginHorizontal();
+                bool newInc = EditorGUILayout.Toggle(includeFlags[i], GUILayout.Width(18));
+                if (newInc != includeFlags[i]) { includeFlags[i] = newInc; SaveIncludeFlagsPrefs(); }
                 float v = EditorGUILayout.Slider(blendNames[i], blendValues[i], 0f, 100f);
+                EditorGUILayout.EndHorizontal();
                 if (Math.Abs(v - blendValues[i]) > 0.0001f)
                 {
                     blendValues[i] = v;
