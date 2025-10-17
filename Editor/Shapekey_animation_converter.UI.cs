@@ -99,8 +99,7 @@ public partial class Shapekey_animation_converter
             if (GUILayout.Button("クリア", GUILayout.Width(60))) { searchText = string.Empty; }
             EditorGUILayout.EndHorizontal();
 
-            // Option to exclude non-matching search keys when saving
-            excludeNonSearchMatches = EditorGUILayout.ToggleLeft("検索に一致しないキーを保存から除外する", excludeNonSearchMatches);
+            // 検索に一致しないキーの保存除外オプションは削除しました
 
             EditorGUILayout.LabelField("シェイプ一覧", EditorStyles.boldLabel);
 

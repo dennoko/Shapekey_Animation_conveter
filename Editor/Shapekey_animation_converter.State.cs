@@ -19,7 +19,6 @@ public partial class Shapekey_animation_converter
     const string PREF_SEARCH_TEXT = "ShapekeyConverter_SearchText";
     const string PREF_SNAPSHOT = "ShapekeyConverter_Snapshot";
     const string PREF_ALIGN_TO_CLIP = "ShapekeyConverter_AlignToClip";
-    const string PREF_EXCLUDE_NON_SEARCH = "ShapekeyConverter_ExcludeNonSearch";
 
     // State fields
     string saveFolder = "Assets/Generated_Animations";
@@ -36,7 +35,7 @@ public partial class Shapekey_animation_converter
     AnimationClip baseAlignClip = null; // for aligning save keys (shown only when option enabled)
     // Options
     bool alignToExistingClipKeys = false; // When saving, include only keys found in loadedClip; disables excludeZero
-    bool excludeNonSearchMatches = false; // When saving, exclude keys that do not match the current search filter
+    
 
     void OnEnable()
     {
@@ -44,7 +43,6 @@ public partial class Shapekey_animation_converter
         searchMode = (SearchMode)EditorPrefs.GetInt(PREF_SEARCH_MODE, (int)SearchMode.Prefix);
         searchText = EditorPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
         alignToExistingClipKeys = EditorPrefs.GetBool(PREF_ALIGN_TO_CLIP, false);
-        excludeNonSearchMatches = EditorPrefs.GetBool(PREF_EXCLUDE_NON_SEARCH, false);
         var last = EditorPrefs.GetString(PREF_LAST_TARGET, string.Empty);
         if (!string.IsNullOrEmpty(last))
         {
@@ -60,7 +58,6 @@ public partial class Shapekey_animation_converter
         EditorPrefs.SetInt(PREF_SEARCH_MODE, (int)searchMode);
         EditorPrefs.SetString(PREF_SEARCH_TEXT, searchText);
         EditorPrefs.SetBool(PREF_ALIGN_TO_CLIP, alignToExistingClipKeys);
-        EditorPrefs.SetBool(PREF_EXCLUDE_NON_SEARCH, excludeNonSearchMatches);
         // persist snapshot if exists
         if (snapshotValues != null && snapshotValues.Count > 0)
         {

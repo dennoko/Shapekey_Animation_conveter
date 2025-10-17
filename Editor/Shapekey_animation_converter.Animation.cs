@@ -33,18 +33,7 @@ public partial class Shapekey_animation_converter
         // Always exclude VRChat control shapekeys from saving
         includeIndices.RemoveAll(idx => IsVrcShapeName(blendNames[idx]));
 
-        // Filter by search
-        if (excludeNonSearchMatches && !string.IsNullOrEmpty(searchText))
-        {
-            Predicate<string> match = (name) =>
-            {
-                if (string.IsNullOrEmpty(searchText)) return true;
-                return searchMode == SearchMode.Prefix
-                    ? name.StartsWith(searchText, StringComparison.OrdinalIgnoreCase)
-                    : name.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
-            };
-            includeIndices.RemoveAll(idx => !match(blendNames[idx] ?? string.Empty));
-        }
+        // 検索一致による保存除外機能は削除しました
 
         // Align to existing clip key set
         if (alignToExistingClipKeys)
