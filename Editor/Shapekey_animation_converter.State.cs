@@ -32,7 +32,8 @@ public partial class Shapekey_animation_converter
     enum SearchMode { Prefix = 0, Contains = 1 }
     SearchMode searchMode = SearchMode.Prefix;
     List<float> snapshotValues = null;
-    AnimationClip loadedClip = null;
+    AnimationClip loadedClip = null; // for applying values to mesh
+    AnimationClip baseAlignClip = null; // for aligning save keys (shown only when option enabled)
     // Options
     bool alignToExistingClipKeys = false; // When saving, include only keys found in loadedClip; disables excludeZero
     bool excludeNonSearchMatches = false; // When saving, exclude keys that do not match the current search filter

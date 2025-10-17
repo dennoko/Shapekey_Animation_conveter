@@ -49,13 +49,13 @@ public partial class Shapekey_animation_converter
         // Align to existing clip key set
         if (alignToExistingClipKeys)
         {
-            if (loadedClip == null)
+            if (baseAlignClip == null)
             {
-                EditorUtility.DisplayDialog("警告", "既存アニメーションに揃えるオプションが有効ですが、アニメーションクリップが選択されていません。全てのキーを対象にします。", "OK");
+                EditorUtility.DisplayDialog("警告", "既存アニメーションに揃えるオプションが有効ですが、ベースアニメーションクリップが選択されていません。全てのキーを対象にします。", "OK");
             }
             else
             {
-                var clipBindings = AnimationUtility.GetCurveBindings(loadedClip);
+                var clipBindings = AnimationUtility.GetCurveBindings(baseAlignClip);
                 var namesInClip = new HashSet<string>();
                 foreach (var b in clipBindings)
                 {
@@ -71,10 +71,10 @@ public partial class Shapekey_animation_converter
         // Optional: map shape -> paths from existing clip to reuse binding.path
         Dictionary<string, List<string>> shapeToPaths = null;
         string currentSmrPath = GetRelativePath(targetSkinnedMesh.transform, targetObject.transform);
-        if (alignToExistingClipKeys && loadedClip != null)
+        if (alignToExistingClipKeys && baseAlignClip != null)
         {
             shapeToPaths = new Dictionary<string, List<string>>();
-            foreach (var b in AnimationUtility.GetCurveBindings(loadedClip))
+            foreach (var b in AnimationUtility.GetCurveBindings(baseAlignClip))
             {
                 if (b.type != typeof(SkinnedMeshRenderer)) continue;
                 if (!b.propertyName.StartsWith("blendShape.")) continue;

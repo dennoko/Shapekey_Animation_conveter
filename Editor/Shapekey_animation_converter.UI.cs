@@ -81,9 +81,13 @@ public partial class Shapekey_animation_converter
             EditorGUILayout.BeginHorizontal();
             alignToExistingClipKeys = EditorGUILayout.ToggleLeft("保存するキーを既存アニメーションに揃える", alignToExistingClipKeys);
             EditorGUILayout.EndHorizontal();
-            if (alignToExistingClipKeys && loadedClip == null)
+            if (alignToExistingClipKeys)
             {
-                EditorGUILayout.HelpBox("既存アニメーションを選択すると、そのアニメに含まれるブレンドシェイプのみを書き出します。", MessageType.Info);
+                baseAlignClip = EditorGUILayout.ObjectField("ベース(揃え用)アニメーション", baseAlignClip, typeof(AnimationClip), false) as AnimationClip;
+                if (baseAlignClip == null)
+                {
+                    EditorGUILayout.HelpBox("ベースアニメーションを選択すると、そのアニメに含まれるブレンドシェイプのみを書き出します。", MessageType.Info);
+                }
             }
 
             // 値0除外機能はオミットしました
@@ -114,7 +118,7 @@ public partial class Shapekey_animation_converter
 
             // Animation clip loader / applier
             EditorGUILayout.BeginHorizontal();
-            loadedClip = EditorGUILayout.ObjectField("読み込むアニメーション", loadedClip, typeof(AnimationClip), false) as AnimationClip;
+            loadedClip = EditorGUILayout.ObjectField("適用用アニメーション (Apply)", loadedClip, typeof(AnimationClip), false) as AnimationClip;
             if (GUILayout.Button("アニメーションを適用", GUILayout.Width(120)))
             {
                 ApplyAnimationToMesh(loadedClip);
