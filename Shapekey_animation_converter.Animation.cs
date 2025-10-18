@@ -12,15 +12,15 @@ public partial class Shapekey_animation_converter
 {
     void SaveAnimationClip()
     {
-        if (targetSkinnedMesh == null) { EditorUtility.DisplayDialog("Error", "No target SkinnedMeshRenderer selected.", "OK"); return; }
+    if (targetSkinnedMesh == null) { EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.error"), DenEmoLoc.T("dlg.apply.noTarget"), DenEmoLoc.T("dlg.ok")); return; }
 
         if (!Directory.Exists(saveFolder))
         {
             try { Directory.CreateDirectory(saveFolder); } catch { }
         }
 
-        string defaultName = targetObject ? targetObject.name + "_blendshape" : "blendshape_anim";
-        string path = EditorUtility.SaveFilePanelInProject("Save Animation", defaultName + ".anim", "anim", "Save generated animation", saveFolder);
+    string defaultName = targetObject ? targetObject.name + "_blendshape" : DenEmoLoc.T("save.panel.defaultName");
+    string path = EditorUtility.SaveFilePanelInProject(DenEmoLoc.T("save.panel.title"), defaultName + ".anim", "anim", DenEmoLoc.T("save.panel.hint"), saveFolder);
         if (string.IsNullOrEmpty(path)) return;
 
         var clip = new AnimationClip();
@@ -88,19 +88,19 @@ public partial class Shapekey_animation_converter
 
         AssetDatabase.CreateAsset(clip, path);
         AssetDatabase.SaveAssets();
-        EditorUtility.DisplayDialog("保存完了", "アニメーションを保存しました: " + path, "OK");
+    EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.save.done.title"), DenEmoLoc.Tf("dlg.save.done.msg", path), DenEmoLoc.T("dlg.ok"));
     }
 
     void ApplyAnimationToMesh(AnimationClip clip)
     {
         if (clip == null)
         {
-            EditorUtility.DisplayDialog("エラー", "アニメーションが選択されていません。", "OK");
+            EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.error"), DenEmoLoc.T("dlg.apply.noClip"), DenEmoLoc.T("dlg.ok"));
             return;
         }
         if (targetSkinnedMesh == null)
         {
-            EditorUtility.DisplayDialog("エラー", "対象の SkinnedMeshRenderer が選択されていません。", "OK");
+            EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.error"), DenEmoLoc.T("dlg.apply.noTarget"), DenEmoLoc.T("dlg.ok"));
             return;
         }
 
@@ -125,11 +125,11 @@ public partial class Shapekey_animation_converter
         if (applied)
         {
             SaveBlendValuesPrefs();
-            EditorUtility.DisplayDialog("適用完了", "アニメーションのシェイプキー値をメッシュに適用しました。", "OK");
+            EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.apply.done.title"), DenEmoLoc.T("dlg.apply.done.msg"), DenEmoLoc.T("dlg.ok"));
         }
         else
         {
-            EditorUtility.DisplayDialog("情報", "アニメーションに適用できるブレンドシェイプが見つかりませんでした。", "OK");
+            EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.info"), DenEmoLoc.T("dlg.apply.noneFound"), DenEmoLoc.T("dlg.ok"));
         }
     }
 }

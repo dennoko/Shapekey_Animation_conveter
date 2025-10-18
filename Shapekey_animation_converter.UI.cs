@@ -10,17 +10,26 @@ public partial class Shapekey_animation_converter
 {
     void OnGUI()
     {
+        EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("DenEmo", EditorStyles.boldLabel);
+        GUILayout.FlexibleSpace();
+        var newLang = EditorGUILayout.ToggleLeft(DenEmoLoc.T("ui.lang.englishMode"), DenEmoLoc.EnglishMode, GUILayout.Width(120));
+        if (newLang != DenEmoLoc.EnglishMode)
+        {
+            DenEmoLoc.EnglishMode = newLang;
+            Repaint();
+        }
+        EditorGUILayout.EndHorizontal();
         EditorGUILayout.Space();
 
     // Basic Settings
     EditorGUILayout.Space();
-        EditorGUILayout.LabelField("基本設定", EditorStyles.boldLabel);
+    EditorGUILayout.LabelField(DenEmoLoc.T("ui.section.basic"), EditorStyles.boldLabel);
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
         
         // Mesh field
         EditorGUI.BeginChangeCheck();
-        var newSmr = EditorGUILayout.ObjectField(new GUIContent("メッシュ", "SkinnedMeshRenderer コンポーネントを指定します。"), targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
+    var newSmr = EditorGUILayout.ObjectField(new GUIContent(DenEmoLoc.T("ui.mesh.label"), DenEmoLoc.T("ui.mesh.tooltip")), targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
         if (EditorGUI.EndChangeCheck())
         {
             targetSkinnedMesh = newSmr;
@@ -31,13 +40,13 @@ public partial class Shapekey_animation_converter
 
         if (targetSkinnedMesh == null)
         {
-            EditorGUILayout.HelpBox("対象のメッシュが選択されていません。SkinnedMeshRenderer を指定してください。", MessageType.Info);
+            EditorGUILayout.HelpBox(DenEmoLoc.T("ui.mesh.missing"), MessageType.Info);
             return;
         }
 
         if (blendNames == null || blendNames.Count == 0)
         {
-            EditorGUILayout.HelpBox("このメッシュにはシェイプキーがありません。", MessageType.Info);
+            EditorGUILayout.HelpBox(DenEmoLoc.T("ui.mesh.noShapes"), MessageType.Info);
             return;
         }
 
@@ -46,8 +55,8 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.BeginHorizontal();
         alignToExistingClipKeys = EditorGUILayout.ToggleLeft(
             new GUIContent(
-                "保存するキーを既存のアニメーションに揃える",
-                "保存時、ここで指定したベースアニメーションに含まれるブレンドシェイプのキーだけを書き出します。未選択時は有効な全シェイプを保存します。"
+                DenEmoLoc.T("ui.align.toggle"),
+                DenEmoLoc.T("ui.align.toggle.tip")
             ),
             alignToExistingClipKeys
         );
@@ -59,15 +68,15 @@ public partial class Shapekey_animation_converter
         {
             EditorGUILayout.LabelField(
                 new GUIContent(
-                    "ベースアニメーション",
-                    "保存対象のシェイプを選別するために参照するAnimationClipです。『適用』を押すと、このクリップに含まれるブレンドシェイプのみを保存対象に切り替えます。"
+                    DenEmoLoc.T("ui.align.base.label"),
+                    DenEmoLoc.T("ui.align.base.tip")
                 ),
                 GUILayout.Width(110)
             );
             baseAlignClip = EditorGUILayout.ObjectField(GUIContent.none, baseAlignClip, typeof(AnimationClip), false) as AnimationClip;
             using (new EditorGUI.DisabledGroupScope(baseAlignClip == null))
             {
-                if (GUILayout.Button(new GUIContent("適用", "ベースアニメーションに含まれるブレンドシェイプのみ保存対象（チェック）にします。vrc.* 系は除外されます。"), GUILayout.Width(60)))
+                if (GUILayout.Button(new GUIContent(DenEmoLoc.T("ui.align.apply.button"), DenEmoLoc.T("ui.align.apply.tip")), GUILayout.Width(60)))
                 {
                     var names = new System.Collections.Generic.HashSet<string>();
                     foreach (var b in AnimationUtility.GetCurveBindings(baseAlignClip))
@@ -93,15 +102,15 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField(
             new GUIContent(
-                "アニメーションを適用",
-                "選択したアニメーションクリップのブレンドシェイプ値（時刻0秒）を現在のメッシュに反映します。"
+                DenEmoLoc.T("ui.applyAnim.label"),
+                DenEmoLoc.T("ui.applyAnim.tip")
             ),
             GUILayout.Width(120)
         );
         loadedClip = EditorGUILayout.ObjectField(GUIContent.none, loadedClip, typeof(AnimationClip), false) as AnimationClip;
         using (new EditorGUI.DisabledGroupScope(loadedClip == null))
         {
-            if (GUILayout.Button(new GUIContent("適用", "アニメーションの値をメッシュへ反映します（一致するシェイプのみ）。Undo対応。"), GUILayout.Width(60)))
+            if (GUILayout.Button(new GUIContent(DenEmoLoc.T("ui.applyAnim.button"), DenEmoLoc.T("ui.applyAnim.button.tip")), GUILayout.Width(60)))
             {
                 ApplyAnimationToMesh(loadedClip);
             }
@@ -112,7 +121,7 @@ public partial class Shapekey_animation_converter
         // Filter toggle
         EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
-        var newShowOnly = EditorGUILayout.ToggleLeft(new GUIContent("有効なシェイプのみ表示", "チェックが入っている（保存対象の）シェイプだけを一覧に表示します。"), showOnlyIncluded);
+    var newShowOnly = EditorGUILayout.ToggleLeft(new GUIContent(DenEmoLoc.T("ui.filter.showIncluded"), DenEmoLoc.T("ui.filter.showIncluded.tip")), showOnlyIncluded);
         if (newShowOnly != showOnlyIncluded)
         {
             showOnlyIncluded = newShowOnly;
@@ -123,11 +132,11 @@ public partial class Shapekey_animation_converter
         // Snapshot controls
         EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("一時保存（スナップショット）", GUILayout.Height(22)))
+        if (GUILayout.Button(DenEmoLoc.T("ui.snapshot.create"), GUILayout.Height(22)))
         {
             CreateSnapshot();
         }
-        if (GUILayout.Button("スナップショットにリセット", GUILayout.Height(22)))
+        if (GUILayout.Button(DenEmoLoc.T("ui.snapshot.restore"), GUILayout.Height(22)))
         {
             RestoreSnapshot();
         }
@@ -135,11 +144,11 @@ public partial class Shapekey_animation_converter
 
     // Search UI
     EditorGUILayout.Space();
-        EditorGUILayout.LabelField("シェイプキー検索", EditorStyles.boldLabel);
+    EditorGUILayout.LabelField(DenEmoLoc.T("ui.section.search"), EditorStyles.boldLabel);
         EditorGUILayout.BeginHorizontal();
         GUI.SetNextControlName("SearchField");
         searchText = EditorGUILayout.TextField(searchText, GUILayout.ExpandWidth(true));
-        if (GUILayout.Button("クリア", GUILayout.Width(60)))
+        if (GUILayout.Button(DenEmoLoc.T("ui.search.clear"), GUILayout.Width(60)))
         {
             searchText = string.Empty;
             // Persist immediately (optional)
@@ -193,7 +202,7 @@ public partial class Shapekey_animation_converter
                 newGroupVal = EditorGUILayout.Toggle(newGroupVal, GUILayout.Width(18));
                 using (new EditorGUI.DisabledGroupScope(true))
                 {
-                    string suffix = groupAllOn ? "(全選択)" : groupAllOff ? "(全解除)" : "(一部)";
+                    string suffix = groupAllOn ? DenEmoLoc.T("ui.group.all") : groupAllOff ? DenEmoLoc.T("ui.group.none") : DenEmoLoc.T("ui.group.some");
                     EditorGUILayout.LabelField($"{seg.key}  {suffix}  [{enabledCount}/{visibleCount}]", EditorStyles.boldLabel);
                 }
                 EditorGUILayout.EndHorizontal();
@@ -275,11 +284,11 @@ public partial class Shapekey_animation_converter
 
         EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("Save Animation", GUILayout.Height(30)))
+        if (GUILayout.Button(DenEmoLoc.T("ui.footer.saveAnim"), GUILayout.Height(30)))
         {
             SaveAnimationClip();
         }
-        if (GUILayout.Button("Refresh", GUILayout.Width(80), GUILayout.Height(30)))
+        if (GUILayout.Button(DenEmoLoc.T("ui.footer.refresh"), GUILayout.Width(80), GUILayout.Height(30)))
         {
             RefreshTargetFromObject();
         }
@@ -287,9 +296,9 @@ public partial class Shapekey_animation_converter
 
     EditorGUILayout.Space();
     EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField("保存先 (既定):", GUILayout.Width(100));
+        EditorGUILayout.LabelField(DenEmoLoc.T("ui.footer.saveTo"), GUILayout.Width(100));
         saveFolder = EditorGUILayout.TextField(saveFolder);
-        if (GUILayout.Button("Browse", GUILayout.Width(80)))
+        if (GUILayout.Button(DenEmoLoc.T("ui.footer.browse"), GUILayout.Width(80)))
         {
             var newPath = EditorUtility.OpenFolderPanel("フォルダを選択", Application.dataPath, "");
             if (!string.IsNullOrEmpty(newPath))

@@ -61,6 +61,7 @@ public partial class Shapekey_animation_converter
 
     void OnEnable()
     {
+        DenEmoLoc.LoadPrefs();
         saveFolder = EditorPrefs.GetString(PREF_SAVE_FOLDER, saveFolder);
         searchMode = (SearchMode)EditorPrefs.GetInt(PREF_SEARCH_MODE, (int)SearchMode.Prefix);
         searchText = EditorPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
