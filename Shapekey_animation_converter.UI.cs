@@ -44,18 +44,30 @@ public partial class Shapekey_animation_converter
         // Align toggle (row 1)
         EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
-        alignToExistingClipKeys = EditorGUILayout.ToggleLeft("保存するキーを既存のアニメーションに揃える", alignToExistingClipKeys);
+        alignToExistingClipKeys = EditorGUILayout.ToggleLeft(
+            new GUIContent(
+                "保存するキーを既存のアニメーションに揃える",
+                "保存時、ここで指定したベースアニメーションに含まれるブレンドシェイプのキーだけを書き出します。未選択時は有効な全シェイプを保存します。"
+            ),
+            alignToExistingClipKeys
+        );
         EditorGUILayout.EndHorizontal();
 
         // Base clip + apply (row 2)
         EditorGUILayout.BeginHorizontal();
         using (new EditorGUI.DisabledGroupScope(!alignToExistingClipKeys))
         {
-            EditorGUILayout.LabelField("ベースアニメーション", GUILayout.Width(110));
+            EditorGUILayout.LabelField(
+                new GUIContent(
+                    "ベースアニメーション",
+                    "保存対象のシェイプを選別するために参照するAnimationClipです。『適用』を押すと、このクリップに含まれるブレンドシェイプのみを保存対象に切り替えます。"
+                ),
+                GUILayout.Width(110)
+            );
             baseAlignClip = EditorGUILayout.ObjectField(GUIContent.none, baseAlignClip, typeof(AnimationClip), false) as AnimationClip;
             using (new EditorGUI.DisabledGroupScope(baseAlignClip == null))
             {
-                if (GUILayout.Button("適用", GUILayout.Width(60)))
+                if (GUILayout.Button(new GUIContent("適用", "ベースアニメーションに含まれるブレンドシェイプのみ保存対象（チェック）にします。vrc.* 系は除外されます。"), GUILayout.Width(60)))
                 {
                     var names = new System.Collections.Generic.HashSet<string>();
                     foreach (var b in AnimationUtility.GetCurveBindings(baseAlignClip))
@@ -79,11 +91,17 @@ public partial class Shapekey_animation_converter
         // Apply animation row
         EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField("アニメーションを適用", GUILayout.Width(120));
+        EditorGUILayout.LabelField(
+            new GUIContent(
+                "アニメーションを適用",
+                "選択したアニメーションクリップのブレンドシェイプ値（時刻0秒）を現在のメッシュに反映します。"
+            ),
+            GUILayout.Width(120)
+        );
         loadedClip = EditorGUILayout.ObjectField(GUIContent.none, loadedClip, typeof(AnimationClip), false) as AnimationClip;
         using (new EditorGUI.DisabledGroupScope(loadedClip == null))
         {
-            if (GUILayout.Button("適用", GUILayout.Width(60)))
+            if (GUILayout.Button(new GUIContent("適用", "アニメーションの値をメッシュへ反映します（一致するシェイプのみ）。Undo対応。"), GUILayout.Width(60)))
             {
                 ApplyAnimationToMesh(loadedClip);
             }
