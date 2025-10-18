@@ -135,6 +135,18 @@ public partial class Shapekey_animation_converter
         // Build AND-search tokens
         var searchTokens = BuildSearchTokens(searchText);
 
+           // Check if filter cache needs rebuild
+           if (filterCacheDirty || searchText != lastSearchText || showOnlyIncluded != lastShowOnlyIncluded)
+           {
+               RebuildVisibleIndicesCache(searchTokens);
+           }
+
+           // Delayed save of include flags (after 0.5 seconds of inactivity)
+           if (includeFlagsDirty && EditorApplication.timeSinceStartup - lastIncludeFlagsChangeTime > 0.5)
+           {
+               SaveIncludeFlagsPrefsImmediate();
+           }
+
         // List
         scroll = EditorGUILayout.BeginScrollView(scroll);
         for (int s = 0; s < groupSegments.Count; s++)
@@ -145,11 +157,10 @@ public partial class Shapekey_animation_converter
 
             int enabledCount = 0;
             int visibleCount = 0;
-            for (int i = start; i < end; i++)
+               // Use cached visible indices for counting
+               foreach (int i in visibleIndices)
             {
-                if (IsVrcShapeName(blendNames[i])) continue;
-                if (!MatchesAllTokens(blendNames[i], searchTokens)) continue;
-                if (showOnlyIncluded && !(i < includeFlags.Count && includeFlags[i])) continue;
+                   if (i < start || i >= end) continue; // Only count indices in this segment
                 visibleCount++;
                 if (i < includeFlags.Count && includeFlags[i]) enabledCount++;
             }
@@ -172,22 +183,28 @@ public partial class Shapekey_animation_converter
                 {
                     for (int i = start; i < end; i++)
                     {
-                        if (IsVrcShapeName(blendNames[i])) continue;
+                           if (i < isVrcShapeCache.Count && isVrcShapeCache[i]) continue;
                         includeFlags[i] = newGroupVal;
                     }
+                       filterCacheDirty = true; // Mark cache dirty when include flags change
                     SaveIncludeFlagsPrefs();
                 }
             }
 
-            for (int i = start; i < end; i++)
+               // Use cached visible indices for rendering
+               foreach (int i in visibleIndices)
             {
-                if (IsVrcShapeName(blendNames[i])) continue;
-                if (!MatchesAllTokens(blendNames[i], searchTokens)) continue;
-                if (showOnlyIncluded && !(i < includeFlags.Count && includeFlags[i])) continue;
+                   if (i < start || i >= end) continue; // Only render indices in this segment
+               
                 EditorGUILayout.BeginHorizontal();
                 if (treatAsGroup) GUILayout.Space(24);
                 bool newInc = EditorGUILayout.Toggle(includeFlags[i], GUILayout.Width(18));
-                if (newInc != includeFlags[i]) { includeFlags[i] = newInc; SaveIncludeFlagsPrefs(); }
+                   if (newInc != includeFlags[i])
+                   {
+                       includeFlags[i] = newInc;
+                       filterCacheDirty = true; // Mark cache dirty
+                       SaveIncludeFlagsPrefs();
+                   }
                 
                 // Slider with Undo support
                 float oldValue = blendValues[i];
@@ -279,12 +296,18 @@ public partial class Shapekey_animation_converter
     static bool MatchesAllTokens(string name, string[] tokens)
     {
         if (tokens == null || tokens.Length == 0) return true;
-        var nm = name ?? string.Empty;
+           if (string.IsNullOrEmpty(name)) return false;
+       
+           // Convert to lower case once for performance
+           var nmLower = name.ToLowerInvariant();
+       
         for (int i = 0; i < tokens.Length; i++)
         {
             var t = tokens[i];
             if (string.IsNullOrEmpty(t)) continue;
-            if (nm.IndexOf(t, StringComparison.OrdinalIgnoreCase) < 0) return false;
+           
+               // Use pre-lowercased string for faster comparison
+               if (nmLower.IndexOf(t.ToLowerInvariant(), StringComparison.Ordinal) < 0) return false;
         }
         return true;
     }

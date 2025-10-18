@@ -40,6 +40,15 @@ public partial class Shapekey_animation_converter
     // Undo tracking for slider drag operations
     bool isSliderDragging = false;
     int currentDraggingIndex = -1;
+        // Performance optimization: cached filter results and flags
+        List<bool> isVrcShapeCache = new List<bool>();
+        List<int> visibleIndices = new List<int>(); // Cached list of indices that pass all filters
+        string lastSearchText = null;
+        bool lastShowOnlyIncluded = false;
+        bool filterCacheDirty = true;
+        // Delayed EditorPrefs save
+        bool includeFlagsDirty = false;
+        double lastIncludeFlagsChangeTime = 0;
     enum SearchMode { Prefix = 0, Contains = 1 }
     SearchMode searchMode = SearchMode.Prefix;
     List<float> snapshotValues = null;
@@ -78,6 +87,12 @@ public partial class Shapekey_animation_converter
         // Unregister undo callback
         Undo.undoRedoPerformed -= OnUndoRedo;
         
+           // Save any pending include flags changes
+           if (includeFlagsDirty)
+           {
+               SaveIncludeFlagsPrefsImmediate();
+           }
+       
         if (targetSkinnedMesh) EditorPrefs.SetString(PREF_LAST_TARGET, targetSkinnedMesh.GetInstanceID().ToString());
         EditorPrefs.SetString(PREF_SAVE_FOLDER, saveFolder);
         EditorPrefs.SetInt(PREF_SEARCH_MODE, (int)searchMode);
@@ -112,6 +127,7 @@ public partial class Shapekey_animation_converter
         blendNames.Clear();
         blendValues.Clear();
         includeFlags.Clear();
+           isVrcShapeCache.Clear();
         groupToIndices.Clear();
         groupOrder.Clear();
         groupSegments.Clear();
@@ -120,9 +136,11 @@ public partial class Shapekey_animation_converter
         int count = mesh.blendShapeCount;
         for (int i = 0; i < count; i++)
         {
-            blendNames.Add(mesh.GetBlendShapeName(i));
+               string name = mesh.GetBlendShapeName(i);
+               blendNames.Add(name);
             blendValues.Add(targetSkinnedMesh.GetBlendShapeWeight(i));
             includeFlags.Add(true); // default include
+               isVrcShapeCache.Add(IsVrcShapeName(name)); // Cache VRC check
         }
         // Try to restore saved values for this mesh/instance
         LoadBlendValuesPrefs();
@@ -143,6 +161,8 @@ public partial class Shapekey_animation_converter
         CreateSnapshot(loadTime: true);
         // build groups/segments based on current blend names
         BuildGroups();
+           // Mark filter cache as dirty
+           filterCacheDirty = true;
     }
 
     void CreateSnapshot(bool loadTime = false)
@@ -233,6 +253,13 @@ public partial class Shapekey_animation_converter
 
     void SaveIncludeFlagsPrefs()
     {
+           // Mark as dirty instead of saving immediately
+           includeFlagsDirty = true;
+           lastIncludeFlagsChangeTime = EditorApplication.timeSinceStartup;
+       }
+
+       void SaveIncludeFlagsPrefsImmediate()
+       {
         try
         {
             string key = GetBlendPrefsKey();
@@ -241,6 +268,7 @@ public partial class Shapekey_animation_converter
             var parts = new string[includeFlags.Count];
             for (int i = 0; i < includeFlags.Count; i++) parts[i] = includeFlags[i] ? "1" : "0";
             EditorPrefs.SetString(key, string.Join(",", parts));
+               includeFlagsDirty = false;
         }
         catch { }
     }
@@ -313,7 +341,7 @@ public partial class Shapekey_animation_converter
         for (int i = 0; i < blendNames.Count; i++)
         {
             var name = blendNames[i] ?? string.Empty;
-            if (IsVrcShapeName(name))
+               if (i < isVrcShapeCache.Count && isVrcShapeCache[i])
             {
                 // break segment at vrc.*
                 flush();
@@ -409,5 +437,27 @@ public partial class Shapekey_animation_converter
         // Force repaint to update UI
         Repaint();
     }
+
+       // Rebuild visible indices cache based on current filters
+       void RebuildVisibleIndicesCache(string[] searchTokens)
+       {
+           visibleIndices.Clear();
+           for (int i = 0; i < blendNames.Count; i++)
+           {
+               // Skip VRC shapes (cached)
+               if (i < isVrcShapeCache.Count && isVrcShapeCache[i]) continue;
+           
+               // Check search filter
+               if (!MatchesAllTokens(blendNames[i], searchTokens)) continue;
+           
+               // Check include filter
+               if (showOnlyIncluded && !(i < includeFlags.Count && includeFlags[i])) continue;
+           
+               visibleIndices.Add(i);
+           }
+           filterCacheDirty = false;
+           lastSearchText = searchText;
+           lastShowOnlyIncluded = showOnlyIncluded;
+       }
 }
 
