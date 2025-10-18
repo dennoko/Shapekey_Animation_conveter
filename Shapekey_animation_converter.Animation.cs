@@ -88,7 +88,14 @@ public partial class Shapekey_animation_converter
 
         AssetDatabase.CreateAsset(clip, path);
         AssetDatabase.SaveAssets();
-    EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.save.done.title"), DenEmoLoc.Tf("dlg.save.done.msg", path), DenEmoLoc.T("dlg.ok"));
+        // Show the saved asset in the Project window
+        var asset = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+        if (asset != null)
+        {
+            EditorGUIUtility.PingObject(asset);
+            Selection.activeObject = asset;
+        }
+        EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.save.done.title"), DenEmoLoc.Tf("dlg.save.done.msg", path), DenEmoLoc.T("dlg.ok"));
     }
 
     void ApplyAnimationToMesh(AnimationClip clip)
