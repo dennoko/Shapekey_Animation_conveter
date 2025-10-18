@@ -126,27 +126,81 @@ public partial class Shapekey_animation_converter
             EditorGUILayout.EndHorizontal();
 
             scroll = EditorGUILayout.BeginScrollView(scroll);
-            for (int i = 0; i < blendNames.Count; i++)
+            // Render by contiguous segments to preserve original order
+            for (int s = 0; s < groupSegments.Count; s++)
             {
-                // Always hide VRChat control shapekeys from the list without altering indices
-                if (IsVrcShapeName(blendNames[i])) continue;
-                // filter by search
-                if (!string.IsNullOrEmpty(searchText))
+                var seg = groupSegments[s];
+                int start = seg.start;
+                int end = seg.start + seg.length; // exclusive
+
+                // Count visible items in this segment (respect search)
+                int enabledCount = 0;
+                int visibleCount = 0;
+                for (int i = start; i < end; i++)
                 {
-                    var name = blendNames[i] ?? string.Empty;
-                    bool ok = searchMode == SearchMode.Prefix ? name.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) : name.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
-                    if (!ok) continue;
+                    if (IsVrcShapeName(blendNames[i])) continue; // safety
+                    if (!string.IsNullOrEmpty(searchText))
+                    {
+                        var nm = blendNames[i] ?? string.Empty;
+                        bool ok = searchMode == SearchMode.Prefix ? nm.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) : nm.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
+                        if (!ok) continue;
+                    }
+                    visibleCount++;
+                    if (i < includeFlags.Count && includeFlags[i]) enabledCount++;
                 }
-                EditorGUILayout.BeginHorizontal();
-                bool newInc = EditorGUILayout.Toggle(includeFlags[i], GUILayout.Width(18));
-                if (newInc != includeFlags[i]) { includeFlags[i] = newInc; SaveIncludeFlagsPrefs(); }
-                float v = EditorGUILayout.Slider(blendNames[i], blendValues[i], 0f, 100f);
-                EditorGUILayout.EndHorizontal();
-                if (Math.Abs(v - blendValues[i]) > 0.0001f)
+
+                bool treatAsGroup = seg.length > 5; // 指定数以下はグループ化しない
+                if (treatAsGroup && visibleCount > 0)
                 {
-                    blendValues[i] = v;
-                    if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, v);
-                    SaveBlendValuesPrefs();
+                    bool groupAllOn = enabledCount == visibleCount && visibleCount > 0;
+                    bool groupAllOff = enabledCount == 0;
+                    bool newGroupVal = groupAllOn;
+                    EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                    newGroupVal = EditorGUILayout.Toggle(newGroupVal, GUILayout.Width(18));
+                    using (new EditorGUI.DisabledGroupScope(true))
+                    {
+                        string suffix = groupAllOn ? "(全選択)" : groupAllOff ? "(全解除)" : "(一部)";
+                        EditorGUILayout.LabelField($"{seg.key}  {suffix}  [{enabledCount}/{visibleCount}]", EditorStyles.boldLabel);
+                    }
+                    EditorGUILayout.EndHorizontal();
+                    if (newGroupVal != groupAllOn)
+                    {
+                        for (int i = start; i < end; i++)
+                        {
+                            if (IsVrcShapeName(blendNames[i])) continue;
+                            if (!string.IsNullOrEmpty(searchText))
+                            {
+                                var nm = blendNames[i] ?? string.Empty;
+                                bool ok = searchMode == SearchMode.Prefix ? nm.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) : nm.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
+                                if (!ok) continue;
+                            }
+                            includeFlags[i] = newGroupVal;
+                        }
+                        SaveIncludeFlagsPrefs();
+                    }
+                }
+
+                // Render items in this segment (preserving original order)
+                for (int i = start; i < end; i++)
+                {
+                    if (IsVrcShapeName(blendNames[i])) continue;
+                    if (!string.IsNullOrEmpty(searchText))
+                    {
+                        var nm = blendNames[i] ?? string.Empty;
+                        bool ok = searchMode == SearchMode.Prefix ? nm.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) : nm.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
+                        if (!ok) continue;
+                    }
+                    EditorGUILayout.BeginHorizontal();
+                    bool newInc = EditorGUILayout.Toggle(includeFlags[i], GUILayout.Width(18));
+                    if (newInc != includeFlags[i]) { includeFlags[i] = newInc; SaveIncludeFlagsPrefs(); }
+                    float v = EditorGUILayout.Slider(blendNames[i], blendValues[i], 0f, 100f);
+                    EditorGUILayout.EndHorizontal();
+                    if (Math.Abs(v - blendValues[i]) > 0.0001f)
+                    {
+                        blendValues[i] = v;
+                        if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, v);
+                        SaveBlendValuesPrefs();
+                    }
                 }
             }
             EditorGUILayout.EndScrollView();

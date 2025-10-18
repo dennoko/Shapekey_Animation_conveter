@@ -28,6 +28,13 @@ public partial class Shapekey_animation_converter
     List<string> blendNames = new List<string>();
     List<float> blendValues = new List<float>();
     List<bool> includeFlags = new List<bool>();
+    // Grouping structures
+    // - name -> indices (legacy/general use)
+    Dictionary<string, List<int>> groupToIndices = new Dictionary<string, List<int>>();
+    List<string> groupOrder = new List<string>();
+    // - contiguous segments to preserve original order and allow thresholds
+    class GroupSegment { public string key; public int start; public int length; }
+    List<GroupSegment> groupSegments = new List<GroupSegment>();
     string searchText = string.Empty;
     enum SearchMode { Prefix = 0, Contains = 1 }
     SearchMode searchMode = SearchMode.Prefix;
@@ -92,6 +99,9 @@ public partial class Shapekey_animation_converter
         blendNames.Clear();
         blendValues.Clear();
         includeFlags.Clear();
+    groupToIndices.Clear();
+    groupOrder.Clear();
+    groupSegments.Clear();
         if (targetSkinnedMesh == null || targetSkinnedMesh.sharedMesh == null) return;
         var mesh = targetSkinnedMesh.sharedMesh;
         int count = mesh.blendShapeCount;
@@ -118,6 +128,8 @@ public partial class Shapekey_animation_converter
         }
         // auto create snapshot at load
         CreateSnapshot(loadTime: true);
+    // build groups/segments based on current blend names
+    BuildGroups();
     }
 
     void CreateSnapshot(bool loadTime = false)
@@ -262,5 +274,107 @@ public partial class Shapekey_animation_converter
         if (name.StartsWith("vrc.", StringComparison.OrdinalIgnoreCase)) return true;
         if (name.StartsWith(".vrc", StringComparison.OrdinalIgnoreCase)) return true;
         return false;
+    }
+
+    // Grouping: build groups based on first delimiter/CamelCase token
+    void BuildGroups()
+    {
+        groupToIndices.Clear();
+        groupOrder.Clear();
+        groupSegments.Clear();
+
+        // Build contiguous segments (excluding vrc.* names)
+        string curKey = null;
+        int segStart = -1;
+        int segLen = 0;
+        Action flush = () =>
+        {
+            if (segLen > 0)
+            {
+                var seg = new GroupSegment { key = curKey ?? "Other", start = segStart, length = segLen };
+                groupSegments.Add(seg);
+            }
+            curKey = null; segStart = -1; segLen = 0;
+        };
+
+        for (int i = 0; i < blendNames.Count; i++)
+        {
+            var name = blendNames[i] ?? string.Empty;
+            if (IsVrcShapeName(name))
+            {
+                // break segment at vrc.*
+                flush();
+                continue;
+            }
+            string key = GetGroupKey(name);
+            if (string.IsNullOrEmpty(key)) key = "Other";
+            if (curKey == null)
+            {
+                curKey = key; segStart = i; segLen = 1;
+            }
+            else if (key == curKey)
+            {
+                segLen++;
+            }
+            else
+            {
+                flush();
+                curKey = key; segStart = i; segLen = 1;
+            }
+        }
+        flush();
+
+        // Also populate name->indices and order for generic use if needed
+        for (int s = 0; s < groupSegments.Count; s++)
+        {
+            var seg = groupSegments[s];
+            if (!groupToIndices.TryGetValue(seg.key, out var list))
+            {
+                list = new List<int>();
+                groupToIndices[seg.key] = list;
+                groupOrder.Add(seg.key);
+            }
+            for (int i = 0; i < seg.length; i++) list.Add(seg.start + i);
+        }
+    }
+
+    static string GetGroupKey(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "Other";
+        name = name.Trim();
+        // 1) delimiter-based first token
+        int idx = IndexOfAny(name, new char[] { ' ', '_', '-', '/' });
+        string token;
+        if (idx > 0)
+        {
+            token = name.Substring(0, idx);
+        }
+        else
+        {
+            // 2) CamelCase: split at first upper following a lower
+            int cut = -1;
+            for (int i = 1; i < name.Length; i++)
+            {
+                if (char.IsUpper(name[i]) && char.IsLetter(name[i - 1]) && char.IsLower(name[i - 1]))
+                {
+                    cut = i; break;
+                }
+            }
+            token = cut > 0 ? name.Substring(0, cut) : name;
+        }
+        token = token.Trim();
+        if (token.Length == 0) return "Other";
+        return token;
+    }
+
+    static int IndexOfAny(string s, char[] chars)
+    {
+        int best = -1;
+        for (int i = 0; i < chars.Length; i++)
+        {
+            int p = s.IndexOf(chars[i]);
+            if (p >= 0 && (best < 0 || p < best)) best = p;
+        }
+        return best;
     }
 }
