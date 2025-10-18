@@ -41,12 +41,14 @@ public partial class Shapekey_animation_converter
         if (targetSkinnedMesh == null)
         {
             EditorGUILayout.HelpBox(DenEmoLoc.T("ui.mesh.missing"), MessageType.Info);
+            EditorGUILayout.EndVertical();
             return;
         }
 
         if (blendNames == null || blendNames.Count == 0)
         {
             EditorGUILayout.HelpBox(DenEmoLoc.T("ui.mesh.noShapes"), MessageType.Info);
+            EditorGUILayout.EndVertical();
             return;
         }
 
