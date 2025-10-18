@@ -14,26 +14,9 @@ public partial class Shapekey_animation_converter
 
         EditorGUILayout.Space();
 
-        EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField("保存フォルダ:", GUILayout.Width(80));
-        saveFolder = EditorGUILayout.TextField(saveFolder);
-        if (GUILayout.Button("Browse", GUILayout.Width(80)))
-        {
-            var newPath = EditorUtility.OpenFolderPanel("フォルダを選択", Application.dataPath, "");
-            if (!string.IsNullOrEmpty(newPath))
-            {
-                if (newPath.StartsWith(Application.dataPath))
-                    saveFolder = "Assets" + newPath.Substring(Application.dataPath.Length);
-                else
-                    saveFolder = newPath;
-            }
-        }
-        EditorGUILayout.EndHorizontal();
-
-        EditorGUILayout.Space();
+        // メッシュ入力を最上段へ配置
 
         // Direct assignment fields (Mesh only)
-        EditorGUILayout.LabelField("対象（直接割り当てかドラッグ＆ドロップ）:");
         EditorGUI.BeginChangeCheck();
         var newSmr = EditorGUILayout.ObjectField(new GUIContent("メッシュ", "SkinnedMeshRenderer コンポーネントを指定します。"), targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
         if (EditorGUI.EndChangeCheck())
@@ -44,13 +27,6 @@ public partial class Shapekey_animation_converter
             Repaint();
         }
 
-/*
-        EditorGUILayout.LabelField("または下にメッシュをドラッグしてください:");
-        var rect = GUILayoutUtility.GetRect(0, 50, GUILayout.ExpandWidth(true));
-        GUI.Box(rect, targetObject ? targetObject.name : "Drag target here");
-        HandleDragAndDrop(rect);
-*/
-
         if (targetSkinnedMesh == null)
         {
             EditorGUILayout.HelpBox("対象のメッシュが選択されていません。SkinnedMeshRenderer を指定してください。", MessageType.Info);
@@ -58,22 +34,24 @@ public partial class Shapekey_animation_converter
 
         if (blendNames.Count > 0)
         {
-            // Alignment option
+            // 基本設定グループ
+            EditorGUILayout.LabelField("基本設定", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            // 1) 既存アニメに揃える（行1: トグルのみ）
             EditorGUILayout.BeginHorizontal();
-            alignToExistingClipKeys = EditorGUILayout.ToggleLeft("保存するキーを既存アニメーションに揃える", alignToExistingClipKeys);
+            alignToExistingClipKeys = EditorGUILayout.ToggleLeft("保存するキーを既存のアニメーションに揃える", alignToExistingClipKeys);
             EditorGUILayout.EndHorizontal();
-            if (alignToExistingClipKeys)
+
+            // 1b) ベースアニメーション + 適用（行2: 入力欄＋ボタン）
+            EditorGUILayout.BeginHorizontal();
+            using (new EditorGUI.DisabledGroupScope(!alignToExistingClipKeys))
             {
-                baseAlignClip = EditorGUILayout.ObjectField("ベース(揃え用)アニメーション", baseAlignClip, typeof(AnimationClip), false) as AnimationClip;
-                if (baseAlignClip == null)
+                EditorGUILayout.LabelField("ベースアニメーション", GUILayout.Width(110));
+                baseAlignClip = EditorGUILayout.ObjectField(GUIContent.none, baseAlignClip, typeof(AnimationClip), false) as AnimationClip;
+                using (new EditorGUI.DisabledGroupScope(baseAlignClip == null))
                 {
-                    EditorGUILayout.HelpBox("ベースアニメーションを選択すると、そのアニメに含まれるブレンドシェイプのみを書き出します。", MessageType.Info);
-                }
-                else
-                {
-                    if (GUILayout.Button("ベースアニメのキーを反映", GUILayout.Height(22)))
+                    if (GUILayout.Button("適用", GUILayout.Width(60)))
                     {
-                        // Build set of names included in baseAlignClip
                         var names = new System.Collections.Generic.HashSet<string>();
                         foreach (var b in AnimationUtility.GetCurveBindings(baseAlignClip))
                         {
@@ -82,7 +60,6 @@ public partial class Shapekey_animation_converter
                             var shape = b.propertyName.Substring("blendShape.".Length);
                             if (!string.IsNullOrEmpty(shape)) names.Add(shape);
                         }
-                        // Apply to includeFlags: included => true; others => false, but keep vrc.* always false
                         for (int i = 0; i < blendNames.Count; i++)
                         {
                             if (IsVrcShapeName(blendNames[i])) { includeFlags[i] = false; continue; }
@@ -92,15 +69,21 @@ public partial class Shapekey_animation_converter
                     }
                 }
             }
-
-            // 値0除外機能はオミットしました
-
-            // 検索 UI
-            EditorGUILayout.BeginHorizontal();
-            searchText = EditorGUILayout.TextField(searchText, GUILayout.ExpandWidth(true));
-            searchMode = (SearchMode)EditorGUILayout.EnumPopup(searchMode, GUILayout.Width(100));
-            if (GUILayout.Button("クリア", GUILayout.Width(60))) { searchText = string.Empty; }
             EditorGUILayout.EndHorizontal();
+
+            // 2) アニメーションを適用 + 入力欄 + 適用（横並び）
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("アニメーションを適用", GUILayout.Width(120));
+            loadedClip = EditorGUILayout.ObjectField(GUIContent.none, loadedClip, typeof(AnimationClip), false) as AnimationClip;
+            using (new EditorGUI.DisabledGroupScope(loadedClip == null))
+            {
+                if (GUILayout.Button("適用", GUILayout.Width(60)))
+                {
+                    ApplyAnimationToMesh(loadedClip);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
 
             // 表示フィルタ: 含まれる（チェック済み）のみ表示
             EditorGUILayout.BeginHorizontal();
@@ -112,8 +95,6 @@ public partial class Shapekey_animation_converter
                 EditorPrefs.SetBool("ShapekeyConverter_ShowOnlyIncluded", showOnlyIncluded);
             }
             EditorGUILayout.EndHorizontal();
-
-            // 検索に一致しないキーの保存除外オプションは削除しました
 
             EditorGUILayout.LabelField("シェイプ一覧", EditorStyles.boldLabel);
 
@@ -129,13 +110,11 @@ public partial class Shapekey_animation_converter
             }
             EditorGUILayout.EndHorizontal();
 
-            // Animation clip loader / applier
+            // 検索 UI
             EditorGUILayout.BeginHorizontal();
-            loadedClip = EditorGUILayout.ObjectField("適用用アニメーション (Apply)", loadedClip, typeof(AnimationClip), false) as AnimationClip;
-            if (GUILayout.Button("アニメーションを適用", GUILayout.Width(120)))
-            {
-                ApplyAnimationToMesh(loadedClip);
-            }
+            searchText = EditorGUILayout.TextField(searchText, GUILayout.ExpandWidth(true));
+            searchMode = (SearchMode)EditorGUILayout.EnumPopup(searchMode, GUILayout.Width(100));
+            if (GUILayout.Button("クリア", GUILayout.Width(60))) { searchText = string.Empty; }
             EditorGUILayout.EndHorizontal();
 
             scroll = EditorGUILayout.BeginScrollView(scroll);
@@ -226,6 +205,23 @@ public partial class Shapekey_animation_converter
             if (GUILayout.Button("Refresh", GUILayout.Width(80), GUILayout.Height(30)))
             {
                 RefreshTargetFromObject();
+            }
+            EditorGUILayout.EndHorizontal();
+
+            // 保存先（既定）を Save の直下に配置。保存時に意識しやすく、通常時は邪魔にならない。
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("保存先 (既定):", GUILayout.Width(100));
+            saveFolder = EditorGUILayout.TextField(saveFolder);
+            if (GUILayout.Button("Browse", GUILayout.Width(80)))
+            {
+                var newPath = EditorUtility.OpenFolderPanel("フォルダを選択", Application.dataPath, "");
+                if (!string.IsNullOrEmpty(newPath))
+                {
+                    if (newPath.StartsWith(Application.dataPath))
+                        saveFolder = "Assets" + newPath.Substring(Application.dataPath.Length);
+                    else
+                        saveFolder = newPath;
+                }
             }
             EditorGUILayout.EndHorizontal();
         }

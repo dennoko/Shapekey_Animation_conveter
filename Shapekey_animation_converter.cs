@@ -7,7 +7,7 @@ public partial class Shapekey_animation_converter : EditorWindow
     [MenuItem("Tools/DenEmo")]
     public static void ShowWindow()
     {
-        var w = GetWindow<Shapekey_animation_converter>("ブレンドシェイプ変換");
+        var w = GetWindow<Shapekey_animation_converter>("DenEmo");
         w.minSize = new Vector2(350, 300);
     }
 }
