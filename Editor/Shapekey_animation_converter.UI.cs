@@ -112,8 +112,17 @@ public partial class Shapekey_animation_converter
         // Search UI
         EditorGUILayout.LabelField("シェイプキー検索", EditorStyles.boldLabel);
         EditorGUILayout.BeginHorizontal();
+        GUI.SetNextControlName("SearchField");
         searchText = EditorGUILayout.TextField(searchText, GUILayout.ExpandWidth(true));
-        if (GUILayout.Button("クリア", GUILayout.Width(60))) { searchText = string.Empty; }
+        if (GUILayout.Button("クリア", GUILayout.Width(60)))
+        {
+            searchText = string.Empty;
+            // Persist immediately (optional)
+            EditorPrefs.SetString("ShapekeyConverter_SearchText", searchText);
+            // Remove focus so the TextField updates visually in the same repaint
+            GUI.FocusControl(null);
+            Repaint();
+        }
         EditorGUILayout.EndHorizontal();
 
         // Build AND-search tokens
