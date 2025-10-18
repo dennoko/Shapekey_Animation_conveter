@@ -199,7 +199,12 @@ public partial class Shapekey_animation_converter
                 bool groupAllOff = enabledCount == 0;
                 bool newGroupVal = groupAllOn;
                 EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-                newGroupVal = EditorGUILayout.Toggle(newGroupVal, GUILayout.Width(18));
+                
+                // Exclude group checkbox from Tab focus navigation
+                int groupCheckboxId = GUIUtility.GetControlID(FocusType.Passive);
+                Rect groupCheckboxRect = GUILayoutUtility.GetRect(18, 18, GUILayout.Width(18));
+                newGroupVal = GUI.Toggle(groupCheckboxRect, groupAllOn, GUIContent.none);
+                
                 using (new EditorGUI.DisabledGroupScope(true))
                 {
                     string suffix = groupAllOn ? DenEmoLoc.T("ui.group.all") : groupAllOff ? DenEmoLoc.T("ui.group.none") : DenEmoLoc.T("ui.group.some");
@@ -218,25 +223,27 @@ public partial class Shapekey_animation_converter
                 }
             }
 
-               // Use cached visible indices for rendering
-               foreach (int i in visibleIndices)
+            // Use cached visible indices for rendering
+            foreach (int i in visibleIndices)
             {
-                   if (i < start || i >= end) continue; // Only render indices in this segment
-               
+                if (i < start || i >= end) continue; // Only render indices in this segment
+                
                 EditorGUILayout.BeginHorizontal();
                 if (treatAsGroup) GUILayout.Space(24);
-                bool newInc = EditorGUILayout.Toggle(includeFlags[i], GUILayout.Width(18));
-                   if (newInc != includeFlags[i])
-                   {
-                       includeFlags[i] = newInc;
-                       filterCacheDirty = true; // Mark cache dirty
-                       SaveIncludeFlagsPrefs();
-                   }
+                
+                // Exclude checkbox from Tab focus navigation
+                int checkboxId = GUIUtility.GetControlID(FocusType.Passive);
+                Rect checkboxRect = GUILayoutUtility.GetRect(18, 18, GUILayout.Width(18));
+                bool newInc = GUI.Toggle(checkboxRect, includeFlags[i], GUIContent.none);
+                if (newInc != includeFlags[i])
+                {
+                    includeFlags[i] = newInc;
+                    filterCacheDirty = true; // Mark cache dirty
+                    SaveIncludeFlagsPrefs();
+                }
                 
                 // Slider with Undo support
-                float oldValue = blendValues[i];
-                
-                // Get control ID before the slider
+                float oldValue = blendValues[i];                // Get control ID before the slider
                 int sliderId = GUIUtility.GetControlID(FocusType.Passive);
                 
                 EditorGUI.BeginChangeCheck();
