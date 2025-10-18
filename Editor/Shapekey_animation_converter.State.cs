@@ -19,6 +19,7 @@ public partial class Shapekey_animation_converter
     const string PREF_SEARCH_TEXT = "ShapekeyConverter_SearchText";
     const string PREF_SNAPSHOT = "ShapekeyConverter_Snapshot";
     const string PREF_ALIGN_TO_CLIP = "ShapekeyConverter_AlignToClip";
+    const string PREF_SHOW_ONLY_INCLUDED = "ShapekeyConverter_ShowOnlyIncluded";
 
     // State fields
     string saveFolder = "Assets/Generated_Animations";
@@ -43,6 +44,7 @@ public partial class Shapekey_animation_converter
     AnimationClip baseAlignClip = null; // for aligning save keys (shown only when option enabled)
     // Options
     bool alignToExistingClipKeys = false; // When saving, include only keys found in loadedClip; disables excludeZero
+    bool showOnlyIncluded = false; // Filter UI to show only shapes currently included
     
 
     void OnEnable()
@@ -51,6 +53,7 @@ public partial class Shapekey_animation_converter
         searchMode = (SearchMode)EditorPrefs.GetInt(PREF_SEARCH_MODE, (int)SearchMode.Prefix);
         searchText = EditorPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
         alignToExistingClipKeys = EditorPrefs.GetBool(PREF_ALIGN_TO_CLIP, false);
+        showOnlyIncluded = EditorPrefs.GetBool(PREF_SHOW_ONLY_INCLUDED, false);
         var last = EditorPrefs.GetString(PREF_LAST_TARGET, string.Empty);
         if (!string.IsNullOrEmpty(last))
         {
@@ -71,6 +74,7 @@ public partial class Shapekey_animation_converter
         EditorPrefs.SetInt(PREF_SEARCH_MODE, (int)searchMode);
         EditorPrefs.SetString(PREF_SEARCH_TEXT, searchText);
         EditorPrefs.SetBool(PREF_ALIGN_TO_CLIP, alignToExistingClipKeys);
+        EditorPrefs.SetBool(PREF_SHOW_ONLY_INCLUDED, showOnlyIncluded);
         // persist snapshot if exists
         if (snapshotValues != null && snapshotValues.Count > 0)
         {
@@ -99,9 +103,9 @@ public partial class Shapekey_animation_converter
         blendNames.Clear();
         blendValues.Clear();
         includeFlags.Clear();
-    groupToIndices.Clear();
-    groupOrder.Clear();
-    groupSegments.Clear();
+        groupToIndices.Clear();
+        groupOrder.Clear();
+        groupSegments.Clear();
         if (targetSkinnedMesh == null || targetSkinnedMesh.sharedMesh == null) return;
         var mesh = targetSkinnedMesh.sharedMesh;
         int count = mesh.blendShapeCount;
@@ -128,8 +132,8 @@ public partial class Shapekey_animation_converter
         }
         // auto create snapshot at load
         CreateSnapshot(loadTime: true);
-    // build groups/segments based on current blend names
-    BuildGroups();
+        // build groups/segments based on current blend names
+        BuildGroups();
     }
 
     void CreateSnapshot(bool loadTime = false)
@@ -343,7 +347,7 @@ public partial class Shapekey_animation_converter
         if (string.IsNullOrEmpty(name)) return "Other";
         name = name.Trim();
         // 1) delimiter-based first token
-        int idx = IndexOfAny(name, new char[] { ' ', '_', '-', '/' });
+        int idx = IndexOfAny(name, new char[] { ' ', '_', '-', '/' , '.' , '0' , '1' , '2' , '3' , '4' , '5' , '6' , '7' , '8' , '9' });
         string token;
         if (idx > 0)
         {

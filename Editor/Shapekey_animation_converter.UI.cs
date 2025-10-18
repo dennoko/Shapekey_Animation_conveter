@@ -10,7 +10,7 @@ public partial class Shapekey_animation_converter
 {
     void OnGUI()
     {
-        EditorGUILayout.LabelField("ブレンドシェイプ → アニメーション変換ツール", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("DenEmo", EditorStyles.boldLabel);
 
         EditorGUILayout.Space();
 
@@ -44,10 +44,12 @@ public partial class Shapekey_animation_converter
             Repaint();
         }
 
+/*
         EditorGUILayout.LabelField("または下にメッシュをドラッグしてください:");
         var rect = GUILayoutUtility.GetRect(0, 50, GUILayout.ExpandWidth(true));
         GUI.Box(rect, targetObject ? targetObject.name : "Drag target here");
         HandleDragAndDrop(rect);
+*/
 
         if (targetSkinnedMesh == null)
         {
@@ -100,6 +102,17 @@ public partial class Shapekey_animation_converter
             if (GUILayout.Button("クリア", GUILayout.Width(60))) { searchText = string.Empty; }
             EditorGUILayout.EndHorizontal();
 
+            // 表示フィルタ: 含まれる（チェック済み）のみ表示
+            EditorGUILayout.BeginHorizontal();
+            var newShowOnly = EditorGUILayout.ToggleLeft(new GUIContent("有効なシェイプのみ表示", "チェックが入っている（保存対象の）シェイプだけを一覧に表示します。"), showOnlyIncluded);
+            if (newShowOnly != showOnlyIncluded)
+            {
+                showOnlyIncluded = newShowOnly;
+                // すぐに保持したい場合はPrefsへも反映
+                EditorPrefs.SetBool("ShapekeyConverter_ShowOnlyIncluded", showOnlyIncluded);
+            }
+            EditorGUILayout.EndHorizontal();
+
             // 検索に一致しないキーの保存除外オプションは削除しました
 
             EditorGUILayout.LabelField("シェイプ一覧", EditorStyles.boldLabel);
@@ -145,11 +158,12 @@ public partial class Shapekey_animation_converter
                         bool ok = searchMode == SearchMode.Prefix ? nm.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) : nm.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
                         if (!ok) continue;
                     }
+                    if (showOnlyIncluded && !(i < includeFlags.Count && includeFlags[i])) continue;
                     visibleCount++;
                     if (i < includeFlags.Count && includeFlags[i]) enabledCount++;
                 }
 
-                bool treatAsGroup = seg.length > 5; // 指定数以下はグループ化しない
+                bool treatAsGroup = seg.length > 3; // 指定数以下はグループ化しない
                 if (treatAsGroup && visibleCount > 0)
                 {
                     bool groupAllOn = enabledCount == visibleCount && visibleCount > 0;
@@ -168,12 +182,7 @@ public partial class Shapekey_animation_converter
                         for (int i = start; i < end; i++)
                         {
                             if (IsVrcShapeName(blendNames[i])) continue;
-                            if (!string.IsNullOrEmpty(searchText))
-                            {
-                                var nm = blendNames[i] ?? string.Empty;
-                                bool ok = searchMode == SearchMode.Prefix ? nm.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) : nm.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
-                                if (!ok) continue;
-                            }
+                            // グループ操作はフィルタに関わらずグループ全体へ適用（隠れている要素も対象）
                             includeFlags[i] = newGroupVal;
                         }
                         SaveIncludeFlagsPrefs();
@@ -190,7 +199,10 @@ public partial class Shapekey_animation_converter
                         bool ok = searchMode == SearchMode.Prefix ? nm.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) : nm.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
                         if (!ok) continue;
                     }
+                    if (showOnlyIncluded && !(i < includeFlags.Count && includeFlags[i])) continue;
                     EditorGUILayout.BeginHorizontal();
+                    // If this segment is treated as a group, add a small left indent for its items
+                    if (treatAsGroup) GUILayout.Space(24);
                     bool newInc = EditorGUILayout.Toggle(includeFlags[i], GUILayout.Width(18));
                     if (newInc != includeFlags[i]) { includeFlags[i] = newInc; SaveIncludeFlagsPrefs(); }
                     float v = EditorGUILayout.Slider(blendNames[i], blendValues[i], 0f, 100f);

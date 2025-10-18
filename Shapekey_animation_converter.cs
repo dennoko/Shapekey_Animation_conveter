@@ -4,7 +4,7 @@ using UnityEngine;
 
 public partial class Shapekey_animation_converter : EditorWindow
 {
-    [MenuItem("Tools/Blendshape -> Animation Converter")]
+    [MenuItem("Tools/DenEmo")]
     public static void ShowWindow()
     {
         var w = GetWindow<Shapekey_animation_converter>("ブレンドシェイプ変換");
