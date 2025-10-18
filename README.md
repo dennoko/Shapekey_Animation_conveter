@@ -1,8 +1,8 @@
-# Shapekey Animation Converter
+# DenEmo
 
 ## 概要
 
-Shapekey Animation Converterは、Unity上でSkinnedMeshRendererのシェイプキー（ブレンドシェイプ）を効率的に調整・アニメーション化するためのエディタ拡張ツールです。VRChat向けモデルや表情アニメーションの作成をサポートします。
+DenEmoは、Unity上でSkinnedMeshRendererのシェイプキー（ブレンドシェイプ）を効率的に調整・アニメーション化するためのエディタ拡張ツールです。VRChat向けモデルや表情アニメーションの作成をサポートします。
 
 - シェイプキー値の調整
 - アニメーションファイル（.anim）の生成
@@ -28,11 +28,11 @@ Shapekey Animation Converterは、Unity上でSkinnedMeshRendererのシェイプ�
 
 ---
 
-# Shapekey Animation Converter
+# DenEmo
 
 ## Overview
 
-Shapekey Animation Converter is a Unity Editor extension for efficiently editing and animating blendshapes (shape keys) on SkinnedMeshRenderer components. Ideal for VRChat avatars and facial animation workflows.
+DenEmo is a Unity Editor extension for efficiently editing and animating blendshapes (shape keys) on SkinnedMeshRenderer components. Ideal for VRChat avatars and facial animation workflows.
 
 - Batch and individual blendshape adjustment
 - Animation file (.anim) export
