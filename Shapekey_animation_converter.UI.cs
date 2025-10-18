@@ -13,6 +13,11 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.LabelField("DenEmo", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
+    // Basic Settings
+    EditorGUILayout.Space();
+        EditorGUILayout.LabelField("基本設定", EditorStyles.boldLabel);
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+        
         // Mesh field
         EditorGUI.BeginChangeCheck();
         var newSmr = EditorGUILayout.ObjectField(new GUIContent("メッシュ", "SkinnedMeshRenderer コンポーネントを指定します。"), targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
@@ -36,10 +41,8 @@ public partial class Shapekey_animation_converter
             return;
         }
 
-        // Basic Settings
-        EditorGUILayout.LabelField("基本設定", EditorStyles.boldLabel);
-        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
         // Align toggle (row 1)
+        EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
         alignToExistingClipKeys = EditorGUILayout.ToggleLeft("保存するキーを既存のアニメーションに揃える", alignToExistingClipKeys);
         EditorGUILayout.EndHorizontal();
@@ -74,6 +77,7 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.EndHorizontal();
 
         // Apply animation row
+        EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("アニメーションを適用", GUILayout.Width(120));
         loadedClip = EditorGUILayout.ObjectField(GUIContent.none, loadedClip, typeof(AnimationClip), false) as AnimationClip;
@@ -88,6 +92,7 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.EndVertical();
 
         // Filter toggle
+        EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
         var newShowOnly = EditorGUILayout.ToggleLeft(new GUIContent("有効なシェイプのみ表示", "チェックが入っている（保存対象の）シェイプだけを一覧に表示します。"), showOnlyIncluded);
         if (newShowOnly != showOnlyIncluded)
@@ -98,6 +103,7 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.EndHorizontal();
 
         // Snapshot controls
+        EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
         if (GUILayout.Button("一時保存（スナップショット）", GUILayout.Height(22)))
         {
@@ -109,7 +115,8 @@ public partial class Shapekey_animation_converter
         }
         EditorGUILayout.EndHorizontal();
 
-        // Search UI
+    // Search UI
+    EditorGUILayout.Space();
         EditorGUILayout.LabelField("シェイプキー検索", EditorStyles.boldLabel);
         EditorGUILayout.BeginHorizontal();
         GUI.SetNextControlName("SearchField");
@@ -205,7 +212,8 @@ public partial class Shapekey_animation_converter
         }
         EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.BeginHorizontal();
+    EditorGUILayout.Space();
+    EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("保存先 (既定):", GUILayout.Width(100));
         saveFolder = EditorGUILayout.TextField(saveFolder);
         if (GUILayout.Button("Browse", GUILayout.Width(80)))
