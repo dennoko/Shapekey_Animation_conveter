@@ -188,14 +188,52 @@ public partial class Shapekey_animation_converter
                 if (treatAsGroup) GUILayout.Space(24);
                 bool newInc = EditorGUILayout.Toggle(includeFlags[i], GUILayout.Width(18));
                 if (newInc != includeFlags[i]) { includeFlags[i] = newInc; SaveIncludeFlagsPrefs(); }
-                float v = EditorGUILayout.Slider(blendNames[i], blendValues[i], 0f, 100f);
-                EditorGUILayout.EndHorizontal();
-                if (Math.Abs(v - blendValues[i]) > 0.0001f)
+                
+                // Slider with Undo support
+                float oldValue = blendValues[i];
+                
+                // Get control ID before the slider
+                int sliderId = GUIUtility.GetControlID(FocusType.Passive);
+                
+                EditorGUI.BeginChangeCheck();
+                float newValue = EditorGUILayout.Slider(blendNames[i], oldValue, 0f, 100f);
+                bool valueChanged = EditorGUI.EndChangeCheck();
+                
+                // Check if this slider is currently being interacted with
+                bool isThisSliderHot = (GUIUtility.hotControl == sliderId || GUIUtility.hotControl == sliderId + 1);
+                
+                // Record undo at the start of interaction (first change while not dragging)
+                if (valueChanged && isThisSliderHot && (!isSliderDragging || currentDraggingIndex != i))
                 {
-                    blendValues[i] = v;
-                    if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, v);
-                    SaveBlendValuesPrefs();
+                    if (targetSkinnedMesh != null)
+                    {
+                        Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
+                    }
+                    isSliderDragging = true;
+                    currentDraggingIndex = i;
                 }
+                
+                // Apply value change immediately
+                if (valueChanged)
+                {
+                    // If changed but no hot control, it's a direct input (not drag) - record undo
+                    if (!isThisSliderHot && !isSliderDragging && targetSkinnedMesh != null)
+                    {
+                        Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
+                    }
+                    
+                    blendValues[i] = newValue;
+                    if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, newValue);
+                }
+                
+                // Detect end of drag - when this slider was hot but now isn't
+                if (isSliderDragging && currentDraggingIndex == i && !isThisSliderHot)
+                {
+                    isSliderDragging = false;
+                    currentDraggingIndex = -1;
+                }
+                
+                EditorGUILayout.EndHorizontal();
             }
         }
         EditorGUILayout.EndScrollView();

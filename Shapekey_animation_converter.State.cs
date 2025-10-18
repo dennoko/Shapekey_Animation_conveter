@@ -37,6 +37,9 @@ public partial class Shapekey_animation_converter
     class GroupSegment { public string key; public int start; public int length; }
     List<GroupSegment> groupSegments = new List<GroupSegment>();
     string searchText = string.Empty;
+    // Undo tracking for slider drag operations
+    bool isSliderDragging = false;
+    int currentDraggingIndex = -1;
     enum SearchMode { Prefix = 0, Contains = 1 }
     SearchMode searchMode = SearchMode.Prefix;
     List<float> snapshotValues = null;
@@ -65,10 +68,16 @@ public partial class Shapekey_animation_converter
                 RefreshBlendList();
             }
         }
+        
+        // Register undo callback to sync blendValues when undo/redo occurs
+        Undo.undoRedoPerformed += OnUndoRedo;
     }
 
     void OnDisable()
     {
+        // Unregister undo callback
+        Undo.undoRedoPerformed -= OnUndoRedo;
+        
         if (targetSkinnedMesh) EditorPrefs.SetString(PREF_LAST_TARGET, targetSkinnedMesh.GetInstanceID().ToString());
         EditorPrefs.SetString(PREF_SAVE_FOLDER, saveFolder);
         EditorPrefs.SetInt(PREF_SEARCH_MODE, (int)searchMode);
@@ -381,4 +390,24 @@ public partial class Shapekey_animation_converter
         }
         return best;
     }
+
+    // Undo/Redo callback: sync blendValues from SkinnedMeshRenderer
+    void OnUndoRedo()
+    {
+        if (targetSkinnedMesh == null || targetSkinnedMesh.sharedMesh == null) return;
+        
+        // Only sync if we have blend shapes
+        int count = Mathf.Min(blendValues.Count, targetSkinnedMesh.sharedMesh.blendShapeCount);
+        if (count == 0) return;
+        
+        // Sync blend shape values from the mesh to our internal list
+        for (int i = 0; i < count; i++)
+        {
+            blendValues[i] = targetSkinnedMesh.GetBlendShapeWeight(i);
+        }
+        
+        // Force repaint to update UI
+        Repaint();
+    }
 }
+
