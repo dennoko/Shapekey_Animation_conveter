@@ -45,6 +45,12 @@ public partial class Shapekey_animation_converter
             return;
         }
 
+        // Warn if the selected mesh is inactive/disabled
+        if (!targetSkinnedMesh.gameObject.activeInHierarchy || !targetSkinnedMesh.enabled)
+        {
+            EditorGUILayout.HelpBox(DenEmoLoc.T("ui.mesh.inactive.warn"), MessageType.Warning);
+        }
+
         if (blendNames == null || blendNames.Count == 0)
         {
             EditorGUILayout.HelpBox(DenEmoLoc.T("ui.mesh.noShapes"), MessageType.Info);

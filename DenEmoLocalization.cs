@@ -36,6 +36,7 @@ public static class DenEmoLoc
         ["ui.mesh.tooltip"] = "SkinnedMeshRenderer コンポーネントを指定します。",
         ["ui.mesh.missing"] = "対象のメッシュが選択されていません。SkinnedMeshRenderer を指定してください。",
         ["ui.mesh.noShapes"] = "このメッシュにはシェイプキーがありません。",
+    ["ui.mesh.inactive.warn"] = "選択中のメッシュは非アクティブ（無効または非表示）です。意図したメッシュか確認してください。",
 
         // Align to existing clip
         ["ui.align.toggle"] = "保存するキーを既存のアニメーションに揃える",
@@ -106,6 +107,7 @@ public static class DenEmoLoc
         ["ui.mesh.tooltip"] = "Assign a SkinnedMeshRenderer component.",
         ["ui.mesh.missing"] = "No target mesh selected. Please assign a SkinnedMeshRenderer.",
         ["ui.mesh.noShapes"] = "This mesh has no blendshapes.",
+    ["ui.mesh.inactive.warn"] = "The selected mesh is inactive (disabled or not active in hierarchy). Please verify it's the intended target.",
 
         // Align to existing clip
         ["ui.align.toggle"] = "Align saved keys to existing animation",
