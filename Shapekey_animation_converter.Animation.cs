@@ -40,26 +40,8 @@ public partial class Shapekey_animation_converter
 
         // Align option no longer forces inclusion; use baseAlignClip only for path reuse and via the UI button
 
-        // Optional: map shape -> paths from existing clip to reuse binding.path
-        Dictionary<string, List<string>> shapeToPaths = null;
-        string currentSmrPath = GetRelativePath(targetSkinnedMesh.transform, targetObject.transform);
-        if (alignToExistingClipKeys && baseAlignClip != null)
-        {
-            shapeToPaths = new Dictionary<string, List<string>>();
-            foreach (var b in AnimationUtility.GetCurveBindings(baseAlignClip))
-            {
-                if (b.type != typeof(SkinnedMeshRenderer)) continue;
-                if (!b.propertyName.StartsWith("blendShape.")) continue;
-                var shape = b.propertyName.Substring("blendShape.".Length);
-                if (string.IsNullOrEmpty(shape)) continue;
-                if (!shapeToPaths.TryGetValue(shape, out var list))
-                {
-                    list = new List<string>();
-                    shapeToPaths[shape] = list;
-                }
-                if (!list.Contains(b.path)) list.Add(b.path);
-            }
-        }
+        // Resolve path to the current SMR from the scene root to ensure path is embedded in saved clip
+        string currentSmrPath = GetRelativePath(targetSkinnedMesh.transform, targetSkinnedMesh.transform.root);
 
         foreach (var i in includeIndices)
         {
@@ -68,15 +50,8 @@ public partial class Shapekey_animation_converter
             string prop = "blendShape." + blendNames[i];
             var binding = new EditorCurveBinding();
             binding.type = typeof(SkinnedMeshRenderer);
-            if (shapeToPaths != null && shapeToPaths.TryGetValue(blendNames[i], out var paths) && paths.Count > 0)
-            {
-                string chosen = paths.Contains(currentSmrPath) ? currentSmrPath : paths[0];
-                binding.path = chosen ?? string.Empty;
-            }
-            else
-            {
-                binding.path = currentSmrPath;
-            }
+            // Always prefer binding to the currently selected SMR path
+            binding.path = currentSmrPath;
             binding.propertyName = prop;
 
             var key = new Keyframe[2];

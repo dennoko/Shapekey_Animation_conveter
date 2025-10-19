@@ -80,19 +80,29 @@ public partial class Shapekey_animation_converter
             {
                 if (GUILayout.Button(new GUIContent(DenEmoLoc.T("ui.align.apply.button"), DenEmoLoc.T("ui.align.apply.tip")), GUILayout.Width(60)))
                 {
-                    var names = new System.Collections.Generic.HashSet<string>();
+                    // Build set of (path, shape) pairs from the base clip
+                    var pairs = new System.Collections.Generic.HashSet<string>();
+                    string currentSmrPath = GetRelativePath(targetSkinnedMesh.transform, targetSkinnedMesh.transform.root);
                     foreach (var b in AnimationUtility.GetCurveBindings(baseAlignClip))
                     {
                         if (b.type != typeof(SkinnedMeshRenderer)) continue;
                         if (!b.propertyName.StartsWith("blendShape.")) continue;
                         var shape = b.propertyName.Substring("blendShape.".Length);
-                        if (!string.IsNullOrEmpty(shape)) names.Add(shape);
+                        if (string.IsNullOrEmpty(shape)) continue;
+                        // Only consider bindings that match the current SMR path
+                        if (string.Equals(b.path, currentSmrPath, StringComparison.Ordinal))
+                        {
+                            pairs.Add(currentSmrPath + "\n" + shape);
+                        }
                     }
+
                     for (int i = 0; i < blendNames.Count; i++)
                     {
                         if (IsVrcShapeName(blendNames[i])) { includeFlags[i] = false; continue; }
-                        includeFlags[i] = names.Contains(blendNames[i]);
+                        bool match = pairs.Contains(currentSmrPath + "\n" + blendNames[i]);
+                        includeFlags[i] = match;
                     }
+                    filterCacheDirty = true;
                     SaveIncludeFlagsPrefs();
                 }
             }
