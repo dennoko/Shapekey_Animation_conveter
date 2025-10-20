@@ -66,11 +66,11 @@ public partial class Shapekey_animation_converter
     void OnEnable()
     {
         DenEmoLoc.LoadPrefs();
-    saveFolder = DenEmoProjectPrefs.GetString(PREF_SAVE_FOLDER, saveFolder);
-    searchText = DenEmoProjectPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
-    alignToExistingClipKeys = DenEmoProjectPrefs.GetBool(PREF_ALIGN_TO_CLIP, false);
-    showOnlyIncluded = DenEmoProjectPrefs.GetBool(PREF_SHOW_ONLY_INCLUDED, false);
-    var last = DenEmoProjectPrefs.GetString(PREF_LAST_TARGET, string.Empty);
+        saveFolder = DenEmoProjectPrefs.GetString(PREF_SAVE_FOLDER, saveFolder);
+        searchText = DenEmoProjectPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
+        alignToExistingClipKeys = DenEmoProjectPrefs.GetBool(PREF_ALIGN_TO_CLIP, false);
+        showOnlyIncluded = DenEmoProjectPrefs.GetBool(PREF_SHOW_ONLY_INCLUDED, false);
+        var last = DenEmoProjectPrefs.GetString(PREF_LAST_TARGET, string.Empty);
         if (!string.IsNullOrEmpty(last))
         {
             var lastObj = EditorUtility.InstanceIDToObject(Convert.ToInt32(last)) as SkinnedMeshRenderer;
@@ -100,11 +100,11 @@ public partial class Shapekey_animation_converter
                SaveIncludeFlagsPrefsImmediate();
            }
        
-    if (targetSkinnedMesh) DenEmoProjectPrefs.SetString(PREF_LAST_TARGET, targetSkinnedMesh.GetInstanceID().ToString());
-    DenEmoProjectPrefs.SetString(PREF_SAVE_FOLDER, saveFolder);
-    DenEmoProjectPrefs.SetString(PREF_SEARCH_TEXT, searchText);
-    DenEmoProjectPrefs.SetBool(PREF_ALIGN_TO_CLIP, alignToExistingClipKeys);
-    DenEmoProjectPrefs.SetBool(PREF_SHOW_ONLY_INCLUDED, showOnlyIncluded);
+        if (targetSkinnedMesh) DenEmoProjectPrefs.SetString(PREF_LAST_TARGET, targetSkinnedMesh.GetInstanceID().ToString());
+        DenEmoProjectPrefs.SetString(PREF_SAVE_FOLDER, saveFolder);
+        DenEmoProjectPrefs.SetString(PREF_SEARCH_TEXT, searchText);
+        DenEmoProjectPrefs.SetBool(PREF_ALIGN_TO_CLIP, alignToExistingClipKeys);
+        DenEmoProjectPrefs.SetBool(PREF_SHOW_ONLY_INCLUDED, showOnlyIncluded);
         // persist snapshot if exists
         if (snapshotValues != null && snapshotValues.Count > 0)
         {
@@ -154,7 +154,7 @@ public partial class Shapekey_animation_converter
         blendNames.Clear();
         blendValues.Clear();
         includeFlags.Clear();
-           isVrcShapeCache.Clear();
+        isVrcShapeCache.Clear();
         groupToIndices.Clear();
         groupOrder.Clear();
         groupSegments.Clear();
@@ -163,11 +163,11 @@ public partial class Shapekey_animation_converter
         int count = mesh.blendShapeCount;
         for (int i = 0; i < count; i++)
         {
-               string name = mesh.GetBlendShapeName(i);
-               blendNames.Add(name);
+            string name = mesh.GetBlendShapeName(i);
+            blendNames.Add(name);
             blendValues.Add(targetSkinnedMesh.GetBlendShapeWeight(i));
             includeFlags.Add(true); // default include
-               isVrcShapeCache.Add(IsVrcShapeName(name)); // Cache VRC check
+            isVrcShapeCache.Add(IsVrcShapeName(name)); // Cache VRC check
         }
         // Try to restore saved values for this mesh/instance
         LoadBlendValuesPrefs();
@@ -188,8 +188,8 @@ public partial class Shapekey_animation_converter
         CreateSnapshot(loadTime: true);
         // build groups/segments based on current blend names
         BuildGroups();
-           // Mark filter cache as dirty
-           filterCacheDirty = true;
+        // Mark filter cache as dirty
+        filterCacheDirty = true;
     }
 
     void CreateSnapshot(bool loadTime = false)

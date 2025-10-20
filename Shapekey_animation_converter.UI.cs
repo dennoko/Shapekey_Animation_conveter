@@ -26,13 +26,13 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.Space();
 
     // Basic Settings
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField(DenEmoLoc.T("ui.section.basic"), EditorStyles.boldLabel);
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField(DenEmoLoc.T("ui.section.basic"), EditorStyles.boldLabel);
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
         
         // Mesh field
         EditorGUI.BeginChangeCheck();
-    var newSmr = EditorGUILayout.ObjectField(new GUIContent(DenEmoLoc.T("ui.mesh.label"), DenEmoLoc.T("ui.mesh.tooltip")), targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
+        var newSmr = EditorGUILayout.ObjectField(new GUIContent(DenEmoLoc.T("ui.mesh.label"), DenEmoLoc.T("ui.mesh.tooltip")), targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
         if (EditorGUI.EndChangeCheck())
         {
             targetSkinnedMesh = newSmr;
@@ -144,7 +144,7 @@ public partial class Shapekey_animation_converter
         // Filter toggle
         EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
-    var newShowOnly = EditorGUILayout.ToggleLeft(new GUIContent(DenEmoLoc.T("ui.filter.showIncluded"), DenEmoLoc.T("ui.filter.showIncluded.tip")), showOnlyIncluded);
+        var newShowOnly = EditorGUILayout.ToggleLeft(new GUIContent(DenEmoLoc.T("ui.filter.showIncluded"), DenEmoLoc.T("ui.filter.showIncluded.tip")), showOnlyIncluded);
         if (newShowOnly != showOnlyIncluded)
         {
             showOnlyIncluded = newShowOnly;
@@ -165,9 +165,9 @@ public partial class Shapekey_animation_converter
         }
         EditorGUILayout.EndHorizontal();
 
-    // Search UI
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField(DenEmoLoc.T("ui.section.search"), EditorStyles.boldLabel);
+        // Search UI
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField(DenEmoLoc.T("ui.section.search"), EditorStyles.boldLabel);
         EditorGUILayout.BeginHorizontal();
         GUI.SetNextControlName("SearchField");
         searchText = EditorGUILayout.TextField(searchText, GUILayout.ExpandWidth(true));
@@ -325,8 +325,8 @@ public partial class Shapekey_animation_converter
         }
         EditorGUILayout.EndHorizontal();
 
-    EditorGUILayout.Space();
-    EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.Space();
+        EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField(DenEmoLoc.T("ui.footer.saveTo"), GUILayout.Width(100));
         saveFolder = EditorGUILayout.TextField(saveFolder);
         if (GUILayout.Button(DenEmoLoc.T("ui.footer.browse"), GUILayout.Width(80)))
