@@ -22,6 +22,11 @@ public partial class Shapekey_animation_converter
             targetSkinnedMesh = newSmr;
             targetObject = targetSkinnedMesh ? targetSkinnedMesh.gameObject : null;
             RefreshBlendList();
+            // 自動スナップショット（現在のメッシュ状態を初期値として保持）
+            if (targetSkinnedMesh != null)
+            {
+                CreateSnapshot(loadTime: false); // 永続化も行う
+            }
             // Reflect mesh -> tool (clarify with status)
             if (targetSkinnedMesh != null)
                 SetStatus(DenEmoLoc.T("status.ready"), StatusLevel.Info, 0);
