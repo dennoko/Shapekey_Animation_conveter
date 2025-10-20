@@ -266,6 +266,21 @@ public partial class Shapekey_animation_converter
                     SaveIncludeFlagsPrefs();
                 }
                 
+                // Reset-to-zero compact button (left of slider)
+                if (GUILayout.Button("0", EditorStyles.miniButton, GUILayout.Width(22)))
+                {
+                    // Only act if not already zero to avoid unnecessary work
+                    if (blendValues[i] != 0f)
+                    {
+                        if (targetSkinnedMesh != null)
+                        {
+                            Undo.RecordObject(targetSkinnedMesh, "Reset Shape Key to 0");
+                        }
+                        blendValues[i] = 0f;
+                        if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, 0f);
+                    }
+                }
+                
                 // Slider with Undo support
                 float oldValue = blendValues[i];                // Get control ID before the slider
                 int sliderId = GUIUtility.GetControlID(FocusType.Passive);
