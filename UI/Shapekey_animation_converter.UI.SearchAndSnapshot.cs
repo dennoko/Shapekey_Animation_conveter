@@ -29,6 +29,8 @@ public partial class Shapekey_animation_converter
         }
         EditorGUILayout.EndHorizontal();
 
+        EditorGUILayout.Space(4f);
+
         // Search UI
         EditorGUILayout.Space();
         EditorGUILayout.LabelField(DenEmoLoc.T("ui.section.search"), EditorStyles.boldLabel);
@@ -60,5 +62,7 @@ public partial class Shapekey_animation_converter
         {
             SaveIncludeFlagsPrefsImmediate();
         }
+
+        EditorGUILayout.Space(4f);
     }
 }

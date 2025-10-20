@@ -100,6 +100,8 @@ public partial class Shapekey_animation_converter
     {
         // Unregister undo callback
         Undo.undoRedoPerformed -= OnUndoRedo;
+        // Stop throttling update loop if active
+        StopThrottleUpdate();
         
            // Save any pending include flags changes
            if (includeFlagsDirty)
