@@ -19,8 +19,8 @@ public partial class Shapekey_animation_converter
             try { Directory.CreateDirectory(saveFolder); } catch { }
         }
 
-    string defaultName = targetObject ? targetObject.name + "_blendshape" : DenEmoLoc.T("save.panel.defaultName");
-    string path = EditorUtility.SaveFilePanelInProject(DenEmoLoc.T("save.panel.title"), defaultName + ".anim", "anim", DenEmoLoc.T("save.panel.hint"), saveFolder);
+        string defaultName = targetObject ? targetObject.name + "_blendshape" : DenEmoLoc.T("save.panel.defaultName");
+        string path = EditorUtility.SaveFilePanelInProject(DenEmoLoc.T("save.panel.title"), defaultName + ".anim", "anim", DenEmoLoc.T("save.panel.hint"), saveFolder);
         if (string.IsNullOrEmpty(path)) return;
 
         var clip = new AnimationClip();

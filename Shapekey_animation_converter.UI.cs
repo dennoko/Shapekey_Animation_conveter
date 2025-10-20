@@ -25,7 +25,7 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.EndHorizontal();
         EditorGUILayout.Space();
 
-    // Basic Settings
+        // Basic Settings
         EditorGUILayout.Space();
         EditorGUILayout.LabelField(DenEmoLoc.T("ui.section.basic"), EditorStyles.boldLabel);
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
@@ -197,7 +197,8 @@ public partial class Shapekey_animation_converter
                SaveIncludeFlagsPrefsImmediate();
            }
 
-        // List
+        // List (framed)
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
         scroll = EditorGUILayout.BeginScrollView(scroll);
         for (int s = 0; s < groupSegments.Count; s++)
         {
@@ -310,7 +311,8 @@ public partial class Shapekey_animation_converter
                 EditorGUILayout.EndHorizontal();
             }
         }
-        EditorGUILayout.EndScrollView();
+    EditorGUILayout.EndScrollView();
+    EditorGUILayout.EndVertical();
 
         EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
