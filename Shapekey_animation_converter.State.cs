@@ -61,6 +61,10 @@ public partial class Shapekey_animation_converter
     StatusLevel statusLevel = StatusLevel.Info;
     double statusSetAt = 0;
     double statusAutoClearSec = 0; // 0=don't auto clear
+
+    // UI: collapsed groups
+    const string PREF_GROUPS_COLLAPSED = "ShapekeyConverter_GroupsCollapsed";
+    System.Collections.Generic.HashSet<string> collapsedGroups = new System.Collections.Generic.HashSet<string>();
     
 
     void OnEnable()
@@ -87,6 +91,9 @@ public partial class Shapekey_animation_converter
 
         // Initial status
         SetStatus(DenEmoLoc.T("status.ready"), StatusLevel.Info, 0);
+
+        // Load collapsed groups per project
+        LoadCollapsedGroupsPrefs();
     }
 
     void OnDisable()
@@ -113,6 +120,7 @@ public partial class Shapekey_animation_converter
             DenEmoProjectPrefs.SetString(PREF_SNAPSHOT, string.Join(",", parts));
         }
         SaveBlendValuesPrefs();
+        SaveCollapsedGroupsPrefs();
     }
 
         // Status helpers
@@ -249,6 +257,44 @@ public partial class Shapekey_animation_converter
         {
             string key = GetBlendPrefsKey();
             if (string.IsNullOrEmpty(key)) return;
+    {
+        collapsedGroups.Clear();
+        var s = DenEmoProjectPrefs.GetString(PREF_GROUPS_COLLAPSED, string.Empty);
+        if (string.IsNullOrEmpty(s)) return;
+        var parts = s.Split(new char[] { '\n', '\r', ',' }, System.StringSplitOptions.RemoveEmptyEntries);
+        foreach (var p in parts)
+        {
+            var key = p.Trim();
+            if (key.Length > 0) collapsedGroups.Add(key);
+        }
+    }
+
+    void SaveCollapsedGroupsPrefs()
+    {
+        if (collapsedGroups == null || collapsedGroups.Count == 0)
+        {
+            DenEmoProjectPrefs.SetString(PREF_GROUPS_COLLAPSED, string.Empty);
+            return;
+        }
+        var arr = new System.Collections.Generic.List<string>(collapsedGroups);
+        DenEmoProjectPrefs.SetString(PREF_GROUPS_COLLAPSED, string.Join(",", arr));
+    }
+
+    bool IsGroupCollapsed(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+        return collapsedGroups.Contains(key);
+    }
+
+    void SetGroupCollapsed(string key, bool collapsed)
+    {
+        if (string.IsNullOrEmpty(key)) return;
+        if (collapsed)
+            collapsedGroups.Add(key);
+        else
+            collapsedGroups.Remove(key);
+        SaveCollapsedGroupsPrefs();
+    }
             var parts = new string[blendValues.Count];
             for (int i = 0; i < blendValues.Count; i++) parts[i] = blendValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
             EditorPrefs.SetString(key, string.Join(",", parts));

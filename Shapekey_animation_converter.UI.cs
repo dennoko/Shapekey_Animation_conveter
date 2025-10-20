@@ -224,6 +224,14 @@ public partial class Shapekey_animation_converter
                 bool newGroupVal = groupAllOn;
                 EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
                 
+                // Fold toggle button left of group name
+                bool collapsed = IsGroupCollapsed(seg.key);
+                string foldIcon = collapsed ? "\u25B6" : "\u25BC"; // ▶ / ▼
+                if (GUILayout.Button(foldIcon, EditorStyles.miniButton, GUILayout.Width(20)))
+                {
+                    SetGroupCollapsed(seg.key, !collapsed);
+                }
+                
                 // Exclude group checkbox from Tab focus navigation
                 int groupCheckboxId = GUIUtility.GetControlID(FocusType.Passive);
                 Rect groupCheckboxRect = GUILayoutUtility.GetRect(18, 18, GUILayout.Width(18));
@@ -251,6 +259,7 @@ public partial class Shapekey_animation_converter
             foreach (int i in visibleIndices)
             {
                 if (i < start || i >= end) continue; // Only render indices in this segment
+                if (treatAsGroup && IsGroupCollapsed(seg.key)) continue; // Skip children when group collapsed
                 
                 EditorGUILayout.BeginHorizontal();
                 if (treatAsGroup) GUILayout.Space(24);
