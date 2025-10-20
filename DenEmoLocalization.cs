@@ -24,6 +24,12 @@ public static class DenEmoLoc
 
     static readonly Dictionary<string, string> JA = new Dictionary<string, string>
     {
+        // Status
+        ["status.ready"] = "準備完了",
+        ["status.saving"] = "保存中...",
+        ["status.applying"] = "適用中...",
+        ["status.alignedSavedTargets"] = "保存対象をベースアニメーションに揃えました",
+
         // Top bar
         ["ui.lang.englishMode"] = "English mode",
 
@@ -95,6 +101,12 @@ public static class DenEmoLoc
 
     static readonly Dictionary<string, string> EN = new Dictionary<string, string>
     {
+        // Status
+        ["status.ready"] = "Ready",
+        ["status.saving"] = "Saving...",
+        ["status.applying"] = "Applying...",
+        ["status.alignedSavedTargets"] = "Save targets aligned to base animation",
+
         // Top bar
         ["ui.lang.englishMode"] = "English Mode",
 

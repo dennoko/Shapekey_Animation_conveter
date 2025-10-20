@@ -10,6 +10,9 @@ public partial class Shapekey_animation_converter
 {
     void OnGUI()
     {
+        // Auto clear status if needed
+        TickStatusAutoClear();
+
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("DenEmo", EditorStyles.boldLabel);
         GUILayout.FlexibleSpace();
@@ -110,6 +113,7 @@ public partial class Shapekey_animation_converter
                     }
                     filterCacheDirty = true;
                     SaveIncludeFlagsPrefs();
+                    SetStatus(DenEmoLoc.T("status.alignedSavedTargets"), StatusLevel.Success);
                 }
             }
         }
@@ -130,6 +134,7 @@ public partial class Shapekey_animation_converter
         {
             if (GUILayout.Button(new GUIContent(DenEmoLoc.T("ui.applyAnim.button"), DenEmoLoc.T("ui.applyAnim.button.tip")), GUILayout.Width(60)))
             {
+                SetStatus(DenEmoLoc.T("status.applying"), StatusLevel.Info, 0);
                 ApplyAnimationToMesh(loadedClip);
             }
         }
@@ -311,6 +316,7 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.BeginHorizontal();
         if (GUILayout.Button(DenEmoLoc.T("ui.footer.saveAnim"), GUILayout.Height(30)))
         {
+            SetStatus(DenEmoLoc.T("status.saving"), StatusLevel.Info, 0);
             SaveAnimationClip();
         }
         if (GUILayout.Button(DenEmoLoc.T("ui.footer.refresh"), GUILayout.Width(80), GUILayout.Height(30)))
@@ -335,6 +341,9 @@ public partial class Shapekey_animation_converter
             }
         }
         EditorGUILayout.EndHorizontal();
+
+        // Status bar at the bottom
+        DrawStatusBar();
     }
 
     // Helper methods for AND search
@@ -391,5 +400,34 @@ public partial class Shapekey_animation_converter
                 evt.Use();
                 break;
         }
+    }
+}
+
+public partial class Shapekey_animation_converter
+{
+    void DrawStatusBar()
+    {
+        GUILayout.FlexibleSpace();
+        var rect = GUILayoutUtility.GetRect(1, 22, GUILayout.ExpandWidth(true));
+        if (Event.current.type == EventType.Repaint)
+        {
+            // Background color per level
+            var bg = EditorGUIUtility.isProSkin ? new Color(0.15f, 0.15f, 0.15f) : new Color(0.90f, 0.90f, 0.90f);
+            switch (statusLevel)
+            {
+                case StatusLevel.Success: bg = new Color(0.20f, 0.45f, 0.20f, 1f); break;
+                case StatusLevel.Warning: bg = new Color(0.55f, 0.45f, 0.15f, 1f); break;
+                case StatusLevel.Error: bg = new Color(0.55f, 0.20f, 0.20f, 1f); break;
+            }
+            EditorGUI.DrawRect(rect, bg);
+        }
+        var style = new GUIStyle(EditorStyles.label)
+        {
+            alignment = TextAnchor.MiddleLeft,
+            normal = { textColor = Color.white },
+            padding = new RectOffset(8, 8, 0, 0)
+        };
+        string text = string.IsNullOrEmpty(statusMessage) ? DenEmoLoc.T("status.ready") : statusMessage;
+        GUI.Label(rect, text, style);
     }
 }

@@ -12,7 +12,7 @@ public partial class Shapekey_animation_converter
 {
     void SaveAnimationClip()
     {
-    if (targetSkinnedMesh == null) { EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.error"), DenEmoLoc.T("dlg.apply.noTarget"), DenEmoLoc.T("dlg.ok")); return; }
+    if (targetSkinnedMesh == null) { SetStatus(DenEmoLoc.T("dlg.apply.noTarget"), StatusLevel.Error); return; }
 
         if (!Directory.Exists(saveFolder))
         {
@@ -70,21 +70,13 @@ public partial class Shapekey_animation_converter
             EditorGUIUtility.PingObject(asset);
             Selection.activeObject = asset;
         }
-        EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.save.done.title"), DenEmoLoc.Tf("dlg.save.done.msg", path), DenEmoLoc.T("dlg.ok"));
+        SetStatus(DenEmoLoc.Tf("dlg.save.done.msg", path), StatusLevel.Success);
     }
 
     void ApplyAnimationToMesh(AnimationClip clip)
     {
-        if (clip == null)
-        {
-            EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.error"), DenEmoLoc.T("dlg.apply.noClip"), DenEmoLoc.T("dlg.ok"));
-            return;
-        }
-        if (targetSkinnedMesh == null)
-        {
-            EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.error"), DenEmoLoc.T("dlg.apply.noTarget"), DenEmoLoc.T("dlg.ok"));
-            return;
-        }
+        if (clip == null) { SetStatus(DenEmoLoc.T("dlg.apply.noClip"), StatusLevel.Error); return; }
+        if (targetSkinnedMesh == null) { SetStatus(DenEmoLoc.T("dlg.apply.noTarget"), StatusLevel.Error); return; }
 
         var bindings = AnimationUtility.GetCurveBindings(clip);
         bool applied = false;
@@ -107,11 +99,11 @@ public partial class Shapekey_animation_converter
         if (applied)
         {
             SaveBlendValuesPrefs();
-            EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.apply.done.title"), DenEmoLoc.T("dlg.apply.done.msg"), DenEmoLoc.T("dlg.ok"));
+            SetStatus(DenEmoLoc.T("dlg.apply.done.msg"), StatusLevel.Success);
         }
         else
         {
-            EditorUtility.DisplayDialog(DenEmoLoc.T("dlg.info"), DenEmoLoc.T("dlg.apply.noneFound"), DenEmoLoc.T("dlg.ok"));
+            SetStatus(DenEmoLoc.T("dlg.apply.noneFound"), StatusLevel.Warning);
         }
     }
 }

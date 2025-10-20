@@ -57,6 +57,13 @@ public partial class Shapekey_animation_converter
     // Options
     bool alignToExistingClipKeys = false; // When saving, include only keys found in loadedClip; disables excludeZero
     bool showOnlyIncluded = false; // Filter UI to show only shapes currently included
+
+    // Status bar state
+    enum StatusLevel { Info, Success, Warning, Error }
+    string statusMessage = null;
+    StatusLevel statusLevel = StatusLevel.Info;
+    double statusSetAt = 0;
+    double statusAutoClearSec = 0; // 0=don't auto clear
     
 
     void OnEnable()
@@ -81,6 +88,9 @@ public partial class Shapekey_animation_converter
         
         // Register undo callback to sync blendValues when undo/redo occurs
         Undo.undoRedoPerformed += OnUndoRedo;
+
+        // Initial status
+        SetStatus(DenEmoLoc.T("status.ready"), StatusLevel.Info, 0);
     }
 
     void OnDisable()
@@ -109,6 +119,27 @@ public partial class Shapekey_animation_converter
         }
         SaveBlendValuesPrefs();
     }
+
+        // Status helpers
+        void SetStatus(string msg, StatusLevel level = StatusLevel.Info, double autoClearSec = 3.0)
+        {
+            statusMessage = msg;
+            statusLevel = level;
+            statusSetAt = EditorApplication.timeSinceStartup;
+            statusAutoClearSec = autoClearSec;
+            Repaint();
+        }
+
+        void TickStatusAutoClear()
+        {
+            if (statusAutoClearSec <= 0) return;
+            if (!string.IsNullOrEmpty(statusMessage) && EditorApplication.timeSinceStartup - statusSetAt > statusAutoClearSec)
+            {
+                statusMessage = null;
+                statusAutoClearSec = 0;
+                Repaint();
+            }
+        }
 
     void RefreshTargetFromObject()
     {
