@@ -15,7 +15,6 @@ public partial class Shapekey_animation_converter
     // Pref keys
     const string PREF_SAVE_FOLDER = "ShapekeyConverter_SaveFolder";
     const string PREF_LAST_TARGET = "ShapekeyConverter_LastTarget";
-    const string PREF_SEARCH_MODE = "ShapekeyConverter_SearchMode";
     const string PREF_SEARCH_TEXT = "ShapekeyConverter_SearchText";
     const string PREF_SNAPSHOT = "ShapekeyConverter_Snapshot";
     const string PREF_ALIGN_TO_CLIP = "ShapekeyConverter_AlignToClip";
@@ -49,8 +48,6 @@ public partial class Shapekey_animation_converter
         // Delayed EditorPrefs save
         bool includeFlagsDirty = false;
         double lastIncludeFlagsChangeTime = 0;
-    enum SearchMode { Prefix = 0, Contains = 1 }
-    SearchMode searchMode = SearchMode.Prefix;
     List<float> snapshotValues = null;
     AnimationClip loadedClip = null; // for applying values to mesh
     AnimationClip baseAlignClip = null; // for aligning save keys (shown only when option enabled)
@@ -69,12 +66,11 @@ public partial class Shapekey_animation_converter
     void OnEnable()
     {
         DenEmoLoc.LoadPrefs();
-        saveFolder = EditorPrefs.GetString(PREF_SAVE_FOLDER, saveFolder);
-        searchMode = (SearchMode)EditorPrefs.GetInt(PREF_SEARCH_MODE, (int)SearchMode.Prefix);
-        searchText = EditorPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
-        alignToExistingClipKeys = EditorPrefs.GetBool(PREF_ALIGN_TO_CLIP, false);
-        showOnlyIncluded = EditorPrefs.GetBool(PREF_SHOW_ONLY_INCLUDED, false);
-        var last = EditorPrefs.GetString(PREF_LAST_TARGET, string.Empty);
+    saveFolder = DenEmoProjectPrefs.GetString(PREF_SAVE_FOLDER, saveFolder);
+    searchText = DenEmoProjectPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
+    alignToExistingClipKeys = DenEmoProjectPrefs.GetBool(PREF_ALIGN_TO_CLIP, false);
+    showOnlyIncluded = DenEmoProjectPrefs.GetBool(PREF_SHOW_ONLY_INCLUDED, false);
+    var last = DenEmoProjectPrefs.GetString(PREF_LAST_TARGET, string.Empty);
         if (!string.IsNullOrEmpty(last))
         {
             var lastObj = EditorUtility.InstanceIDToObject(Convert.ToInt32(last)) as SkinnedMeshRenderer;
@@ -104,18 +100,17 @@ public partial class Shapekey_animation_converter
                SaveIncludeFlagsPrefsImmediate();
            }
        
-        if (targetSkinnedMesh) EditorPrefs.SetString(PREF_LAST_TARGET, targetSkinnedMesh.GetInstanceID().ToString());
-        EditorPrefs.SetString(PREF_SAVE_FOLDER, saveFolder);
-        EditorPrefs.SetInt(PREF_SEARCH_MODE, (int)searchMode);
-        EditorPrefs.SetString(PREF_SEARCH_TEXT, searchText);
-        EditorPrefs.SetBool(PREF_ALIGN_TO_CLIP, alignToExistingClipKeys);
-        EditorPrefs.SetBool(PREF_SHOW_ONLY_INCLUDED, showOnlyIncluded);
+    if (targetSkinnedMesh) DenEmoProjectPrefs.SetString(PREF_LAST_TARGET, targetSkinnedMesh.GetInstanceID().ToString());
+    DenEmoProjectPrefs.SetString(PREF_SAVE_FOLDER, saveFolder);
+    DenEmoProjectPrefs.SetString(PREF_SEARCH_TEXT, searchText);
+    DenEmoProjectPrefs.SetBool(PREF_ALIGN_TO_CLIP, alignToExistingClipKeys);
+    DenEmoProjectPrefs.SetBool(PREF_SHOW_ONLY_INCLUDED, showOnlyIncluded);
         // persist snapshot if exists
         if (snapshotValues != null && snapshotValues.Count > 0)
         {
             var parts = new string[snapshotValues.Count];
             for (int i = 0; i < snapshotValues.Count; i++) parts[i] = snapshotValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
-            EditorPrefs.SetString(PREF_SNAPSHOT, string.Join(",", parts));
+            DenEmoProjectPrefs.SetString(PREF_SNAPSHOT, string.Join(",", parts));
         }
         SaveBlendValuesPrefs();
     }
@@ -207,7 +202,7 @@ public partial class Shapekey_animation_converter
             {
                 var parts = new string[snapshotValues.Count];
                 for (int i = 0; i < snapshotValues.Count; i++) parts[i] = snapshotValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
-                EditorPrefs.SetString(PREF_SNAPSHOT, string.Join(",", parts));
+                DenEmoProjectPrefs.SetString(PREF_SNAPSHOT, string.Join(",", parts));
             }
             catch { }
         }
@@ -217,9 +212,9 @@ public partial class Shapekey_animation_converter
     {
         if (snapshotValues == null || snapshotValues.Count == 0)
         {
-            if (EditorPrefs.HasKey(PREF_SNAPSHOT))
+            if (DenEmoProjectPrefs.HasKey(PREF_SNAPSHOT))
             {
-                var s = EditorPrefs.GetString(PREF_SNAPSHOT);
+                var s = DenEmoProjectPrefs.GetString(PREF_SNAPSHOT);
                 var parts = s.Split(',');
                 snapshotValues = new List<float>();
                 for (int i = 0; i < parts.Length; i++)

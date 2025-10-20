@@ -148,7 +148,7 @@ public partial class Shapekey_animation_converter
         if (newShowOnly != showOnlyIncluded)
         {
             showOnlyIncluded = newShowOnly;
-            EditorPrefs.SetBool("ShapekeyConverter_ShowOnlyIncluded", showOnlyIncluded);
+            DenEmoProjectPrefs.SetBool("ShapekeyConverter_ShowOnlyIncluded", showOnlyIncluded);
         }
         EditorGUILayout.EndHorizontal();
 
@@ -175,7 +175,7 @@ public partial class Shapekey_animation_converter
         {
             searchText = string.Empty;
             // Persist immediately (optional)
-            EditorPrefs.SetString("ShapekeyConverter_SearchText", searchText);
+            DenEmoProjectPrefs.SetString("ShapekeyConverter_SearchText", searchText);
             // Remove focus so the TextField updates visually in the same repaint
             GUI.FocusControl(null);
             Repaint();

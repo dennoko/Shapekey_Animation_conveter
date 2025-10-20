@@ -3,7 +3,7 @@ using UnityEditor;
 
 public static class DenEmoLoc
 {
-    const string PREF_LANG_EN = "DenEmo_Lang_EnglishMode";
+    const string PREF_LANG_EN = "DenEmo_Lang_EnglishMode"; // Keep language global intentionally
 
     static bool _englishMode = false;
     public static bool EnglishMode
@@ -19,7 +19,7 @@ public static class DenEmoLoc
 
     public static void LoadPrefs()
     {
-        _englishMode = EditorPrefs.GetBool(PREF_LANG_EN, false);
+    _englishMode = EditorPrefs.GetBool(PREF_LANG_EN, false);
     }
 
     static readonly Dictionary<string, string> JA = new Dictionary<string, string>
