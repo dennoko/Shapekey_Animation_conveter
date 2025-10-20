@@ -160,8 +160,8 @@ public partial class Shapekey_animation_converter
             includeFlags.Add(true); // default include
             isVrcShapeCache.Add(IsVrcShapeName(name)); // Cache VRC check
         }
-        // Try to restore saved values for this mesh/instance
-        LoadBlendValuesPrefs();
+        // Do NOT overwrite tool values or apply to mesh when switching target
+        // Tool should reflect current mesh state by default
         // Try to restore include flags for this mesh/instance
         LoadIncludeFlagsPrefs();
         // Ensure includeFlags length matches

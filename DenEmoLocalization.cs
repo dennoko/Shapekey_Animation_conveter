@@ -31,7 +31,7 @@ public static class DenEmoLoc
         ["status.alignedSavedTargets"] = "保存対象をベースアニメーションに揃えました",
 
         // Top bar
-        ["ui.lang.englishMode"] = "English mode",
+        ["ui.lang.englishMode"] = "Enable English mode",
 
         // Sections
         ["ui.section.basic"] = "基本設定",
@@ -108,7 +108,7 @@ public static class DenEmoLoc
         ["status.alignedSavedTargets"] = "Save targets aligned to base animation",
 
         // Top bar
-        ["ui.lang.englishMode"] = "English Mode",
+        ["ui.lang.englishMode"] = "日本語モードを有効化",
 
         // Sections
         ["ui.section.basic"] = "Basic Settings",

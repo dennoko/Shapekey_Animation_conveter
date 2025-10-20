@@ -17,9 +17,14 @@ public partial class Shapekey_animation_converter
         var newSmr = EditorGUILayout.ObjectField(new GUIContent(DenEmoLoc.T("ui.mesh.label"), DenEmoLoc.T("ui.mesh.tooltip")), targetSkinnedMesh, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
         if (EditorGUI.EndChangeCheck())
         {
+            // Stop any pending throttled applies from previous target
+            StopThrottleUpdate();
             targetSkinnedMesh = newSmr;
             targetObject = targetSkinnedMesh ? targetSkinnedMesh.gameObject : null;
             RefreshBlendList();
+            // Reflect mesh -> tool (clarify with status)
+            if (targetSkinnedMesh != null)
+                SetStatus(DenEmoLoc.T("status.ready"), StatusLevel.Info, 0);
             Repaint();
         }
 
