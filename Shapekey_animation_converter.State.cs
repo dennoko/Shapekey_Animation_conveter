@@ -123,26 +123,7 @@ public partial class Shapekey_animation_converter
         SaveCollapsedGroupsPrefs();
     }
 
-        // Status helpers
-        void SetStatus(string msg, StatusLevel level = StatusLevel.Info, double autoClearSec = 3.0)
-        {
-            statusMessage = msg;
-            statusLevel = level;
-            statusSetAt = EditorApplication.timeSinceStartup;
-            statusAutoClearSec = autoClearSec;
-            Repaint();
-        }
-
-        void TickStatusAutoClear()
-        {
-            if (statusAutoClearSec <= 0) return;
-            if (!string.IsNullOrEmpty(statusMessage) && EditorApplication.timeSinceStartup - statusSetAt > statusAutoClearSec)
-            {
-                statusMessage = null;
-                statusAutoClearSec = 0;
-                Repaint();
-            }
-        }
+        // Status helpers moved to State/Shapekey_animation_converter.State.Status.cs
 
     void RefreshTargetFromObject()
     {
@@ -200,195 +181,7 @@ public partial class Shapekey_animation_converter
         filterCacheDirty = true;
     }
 
-    void CreateSnapshot(bool loadTime = false)
-    {
-        if (blendValues == null || blendValues.Count == 0) return;
-        snapshotValues = new List<float>(blendValues);
-        if (!loadTime)
-        {
-            try
-            {
-                var parts = new string[snapshotValues.Count];
-                for (int i = 0; i < snapshotValues.Count; i++) parts[i] = snapshotValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
-                DenEmoProjectPrefs.SetString(PREF_SNAPSHOT, string.Join(",", parts));
-            }
-            catch { }
-        }
-    }
-
-    void RestoreSnapshot()
-    {
-        if (snapshotValues == null || snapshotValues.Count == 0)
-        {
-            if (DenEmoProjectPrefs.HasKey(PREF_SNAPSHOT))
-            {
-                var s = DenEmoProjectPrefs.GetString(PREF_SNAPSHOT);
-                var parts = s.Split(',');
-                snapshotValues = new List<float>();
-                for (int i = 0; i < parts.Length; i++)
-                {
-                    if (float.TryParse(parts[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var f)) snapshotValues.Add(f);
-                    else snapshotValues.Add(0f);
-                }
-            }
-        }
-        if (snapshotValues == null) return;
-        int n = Math.Min(snapshotValues.Count, blendValues.Count);
-        for (int i = 0; i < n; i++)
-        {
-            blendValues[i] = snapshotValues[i];
-            if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, snapshotValues[i]);
-        }
-        SaveBlendValuesPrefs();
-    }
-
-    string GetBlendPrefsKey()
-    {
-        if (targetSkinnedMesh == null || targetSkinnedMesh.sharedMesh == null) return null;
-        string scene = targetObject ? targetObject.scene.name : "";
-        string rel = GetRelativePath(targetSkinnedMesh.transform, targetObject ? targetObject.transform : targetSkinnedMesh.transform);
-        string meshName = targetSkinnedMesh.sharedMesh.name;
-        return $"ShapekeyConverter_Values|{scene}|{rel}|{meshName}";
-    }
-
-    void SaveBlendValuesPrefs()
-    {
-        try
-        {
-            string key = GetBlendPrefsKey();
-            if (string.IsNullOrEmpty(key)) return;
-    {
-        collapsedGroups.Clear();
-        var s = DenEmoProjectPrefs.GetString(PREF_GROUPS_COLLAPSED, string.Empty);
-        if (string.IsNullOrEmpty(s)) return;
-        var parts = s.Split(new char[] { '\n', '\r', ',' }, System.StringSplitOptions.RemoveEmptyEntries);
-        foreach (var p in parts)
-        {
-            var key = p.Trim();
-            if (key.Length > 0) collapsedGroups.Add(key);
-        }
-    }
-
-    void SaveCollapsedGroupsPrefs()
-    {
-        if (collapsedGroups == null || collapsedGroups.Count == 0)
-        {
-            DenEmoProjectPrefs.SetString(PREF_GROUPS_COLLAPSED, string.Empty);
-            return;
-        }
-        var arr = new System.Collections.Generic.List<string>(collapsedGroups);
-        DenEmoProjectPrefs.SetString(PREF_GROUPS_COLLAPSED, string.Join(",", arr));
-    }
-
-    bool IsGroupCollapsed(string key)
-    {
-        if (string.IsNullOrEmpty(key)) return false;
-        return collapsedGroups.Contains(key);
-    }
-
-    void SetGroupCollapsed(string key, bool collapsed)
-    {
-        if (string.IsNullOrEmpty(key)) return;
-        if (collapsed)
-            collapsedGroups.Add(key);
-        else
-            collapsedGroups.Remove(key);
-        SaveCollapsedGroupsPrefs();
-    }
-            var parts = new string[blendValues.Count];
-            for (int i = 0; i < blendValues.Count; i++) parts[i] = blendValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
-            EditorPrefs.SetString(key, string.Join(",", parts));
-        }
-        catch { }
-    }
-
-    void LoadBlendValuesPrefs()
-    {
-        try
-        {
-            string key = GetBlendPrefsKey();
-            if (string.IsNullOrEmpty(key)) return;
-            if (!EditorPrefs.HasKey(key)) return;
-            var s = EditorPrefs.GetString(key);
-            if (string.IsNullOrEmpty(s)) return;
-            var parts = s.Split(',');
-            for (int i = 0; i < parts.Length && i < blendValues.Count; i++)
-            {
-                if (float.TryParse(parts[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var f))
-                {
-                    blendValues[i] = f;
-                    if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, f);
-                }
-            }
-        }
-        catch { }
-    }
-
-    void SaveIncludeFlagsPrefs()
-    {
-           // Mark as dirty instead of saving immediately
-           includeFlagsDirty = true;
-           lastIncludeFlagsChangeTime = EditorApplication.timeSinceStartup;
-       }
-
-       void SaveIncludeFlagsPrefsImmediate()
-       {
-        try
-        {
-            string key = GetBlendPrefsKey();
-            if (string.IsNullOrEmpty(key)) return;
-            key += "|IncludeFlags";
-            var parts = new string[includeFlags.Count];
-            for (int i = 0; i < includeFlags.Count; i++) parts[i] = includeFlags[i] ? "1" : "0";
-            EditorPrefs.SetString(key, string.Join(",", parts));
-               includeFlagsDirty = false;
-        }
-        catch { }
-    }
-
-    void LoadIncludeFlagsPrefs()
-    {
-        try
-        {
-            string key = GetBlendPrefsKey();
-            if (string.IsNullOrEmpty(key)) return;
-            key += "|IncludeFlags";
-            if (!EditorPrefs.HasKey(key)) return;
-            var s = EditorPrefs.GetString(key);
-            if (string.IsNullOrEmpty(s)) return;
-            var parts = s.Split(',');
-            for (int i = 0; i < parts.Length && i < includeFlags.Count; i++)
-            {
-                includeFlags[i] = parts[i] == "1" || parts[i].Equals("true", StringComparison.OrdinalIgnoreCase);
-            }
-        }
-        catch { }
-    }
-
-    static string GetRelativePath(Transform target, Transform root)
-    {
-        if (target == root) return "";
-        var parts = new List<string>();
-        var t = target;
-        while (t != null && t != root)
-        {
-            parts.Add(t.name);
-            t = t.parent;
-        }
-        parts.Reverse();
-        return string.Join("/", parts.ToArray());
-    }
-
-    // Helper: detect VRChat control shapekeys that should always be ignored/hidden
-    static bool IsVrcShapeName(string name)
-    {
-        if (string.IsNullOrEmpty(name)) return false;
-        name = name.Trim();
-        // Hide names starting with "vrc." or ".vrc" (case-insensitive)
-        if (name.StartsWith("vrc.", StringComparison.OrdinalIgnoreCase)) return true;
-        if (name.StartsWith(".vrc", StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
-    }
+    // Snapshot and Pref helpers moved to State/Shapekey_animation_converter.State.Snapshot.cs and .Prefs.cs
 
     // Grouping: build groups based on first delimiter/CamelCase token
     void BuildGroups()
@@ -452,85 +245,30 @@ public partial class Shapekey_animation_converter
         }
     }
 
-    static string GetGroupKey(string name)
-    {
-        if (string.IsNullOrEmpty(name)) return "Other";
-        name = name.Trim();
-        // 1) delimiter-based first token
-        int idx = IndexOfAny(name, new char[] { ' ', '_', '-', '/' , '.' , '0' , '1' , '2' , '3' , '4' , '5' , '6' , '7' , '8' , '9' });
-        string token;
-        if (idx > 0)
-        {
-            token = name.Substring(0, idx);
-        }
-        else
-        {
-            // 2) CamelCase: split at first upper following a lower
-            int cut = -1;
-            for (int i = 1; i < name.Length; i++)
-            {
-                if (char.IsUpper(name[i]) && char.IsLetter(name[i - 1]) && char.IsLower(name[i - 1]))
-                {
-                    cut = i; break;
-                }
-            }
-            token = cut > 0 ? name.Substring(0, cut) : name;
-        }
-        token = token.Trim();
-        if (token.Length == 0) return "Other";
-        return token;
-    }
+    // GetGroupKey, IndexOfAny moved to State/Shapekey_animation_converter.State.Utils.cs
 
-    static int IndexOfAny(string s, char[] chars)
-    {
-        int best = -1;
-        for (int i = 0; i < chars.Length; i++)
-        {
-            int p = s.IndexOf(chars[i]);
-            if (p >= 0 && (best < 0 || p < best)) best = p;
-        }
-        return best;
-    }
+    // Undo/Redo handler moved to State/Shapekey_animation_converter.State.Undo.cs
 
-    // Undo/Redo callback: sync blendValues from SkinnedMeshRenderer
-    void OnUndoRedo()
+    // Rebuild visible indices cache based on current filters
+    void RebuildVisibleIndicesCache(string[] searchTokens)
     {
-        if (targetSkinnedMesh == null || targetSkinnedMesh.sharedMesh == null) return;
-        
-        // Only sync if we have blend shapes
-        int count = Mathf.Min(blendValues.Count, targetSkinnedMesh.sharedMesh.blendShapeCount);
-        if (count == 0) return;
-        
-        // Sync blend shape values from the mesh to our internal list
-        for (int i = 0; i < count; i++)
+        visibleIndices.Clear();
+        for (int i = 0; i < blendNames.Count; i++)
         {
-            blendValues[i] = targetSkinnedMesh.GetBlendShapeWeight(i);
-        }
+            // Skip VRC shapes (cached)
+            if (i < isVrcShapeCache.Count && isVrcShapeCache[i]) continue;
         
-        // Force repaint to update UI
-        Repaint();
+            // Check search filter
+            if (!MatchesAllTokens(blendNames[i], searchTokens)) continue;
+        
+            // Check include filter
+            if (showOnlyIncluded && !(i < includeFlags.Count && includeFlags[i])) continue;
+        
+            visibleIndices.Add(i);
+        }
+        filterCacheDirty = false;
+        lastSearchText = searchText;
+        lastShowOnlyIncluded = showOnlyIncluded;
     }
-
-       // Rebuild visible indices cache based on current filters
-       void RebuildVisibleIndicesCache(string[] searchTokens)
-       {
-           visibleIndices.Clear();
-           for (int i = 0; i < blendNames.Count; i++)
-           {
-               // Skip VRC shapes (cached)
-               if (i < isVrcShapeCache.Count && isVrcShapeCache[i]) continue;
-           
-               // Check search filter
-               if (!MatchesAllTokens(blendNames[i], searchTokens)) continue;
-           
-               // Check include filter
-               if (showOnlyIncluded && !(i < includeFlags.Count && includeFlags[i])) continue;
-           
-               visibleIndices.Add(i);
-           }
-           filterCacheDirty = false;
-           lastSearchText = searchText;
-           lastShowOnlyIncluded = showOnlyIncluded;
-       }
 }
 
