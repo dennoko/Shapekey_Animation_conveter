@@ -66,6 +66,18 @@ public partial class Shapekey_animation_converter
     // UI: collapsed groups
     const string PREF_GROUPS_COLLAPSED = "ShapekeyConverter_GroupsCollapsed";
     System.Collections.Generic.HashSet<string> collapsedGroups = new System.Collections.Generic.HashSet<string>();
+    // Debug: UI foldout state for lip-sync detection (commented out)
+    // bool _debugLipSyncFoldout = false;
+    // Debug: Lip-sync detection debug info (commented out)
+    // bool _lsDescFound = false;
+    // bool _lsLipSyncPropFound = false;
+    // string _lsLipSyncMode = null;
+    // bool _lsIsVisemeBlendshape = false;
+    // bool _lsSmrPropFound = false;
+    // string _lsSmrName = null;
+    // bool _lsNamesPropFound = false;
+    // int _lsNamesCount = 0;
+    // System.Collections.Generic.List<string> _lsNamesSample = new System.Collections.Generic.List<string>();
     
 
     void OnEnable()

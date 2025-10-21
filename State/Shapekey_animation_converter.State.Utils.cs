@@ -77,45 +77,86 @@ public partial class Shapekey_animation_converter
         try
         {
             if (targetSkinnedMesh == null) return;
-            var avatarRoot = targetSkinnedMesh.transform.root;
-            if (avatarRoot == null) return;
-            // Find a component named "VRC_AvatarDescriptor" via reflection (no hard reference)
-            var comps = avatarRoot.GetComponents<Component>();
+            // Debug: Reset debug flags (commented out)
+            // _lsDescFound = false;
+            // _lsLipSyncPropFound = false;
+            // _lsLipSyncMode = null;
+            // _lsIsVisemeBlendshape = false;
+            // _lsSmrPropFound = false;
+            // _lsSmrName = null;
+            // _lsNamesPropFound = false;
+            // _lsNamesCount = 0;
+            // _lsNamesSample.Clear();
+            // Find VRC_AvatarDescriptor along the parent chain (root-most first hit)
             Component descriptor = null;
-            foreach (var c in comps)
+            var tr = targetSkinnedMesh.transform;
+            while (tr != null && descriptor == null)
             {
-                if (c == null) continue;
-                var t = c.GetType();
-                if (t.Name == "VRC_AvatarDescriptor") { descriptor = c; break; }
+                var comps = tr.GetComponents<Component>();
+                foreach (var c in comps)
+                {
+                    if (c == null) continue;
+                    var t = c.GetType();
+                    var name = t.Name;
+                    var full = t.FullName;
+                    if (name == "VRC_AvatarDescriptor" || name == "VRCAvatarDescriptor" || (full != null && (full.Contains("VRC_AvatarDescriptor") || full.Contains("VRCAvatarDescriptor"))))
+                    {
+                        descriptor = c; break;
+                    }
+                }
+                tr = tr.parent;
             }
             if (descriptor == null) return;
+            // Debug: mark descriptor found
+            // _lsDescFound = true;
 
             var dtype = descriptor.GetType();
             // lipSync style property enum; when "VisemeBlendShape" or similar, a SkinnedMeshRenderer and names are used
             var lipSyncStyleProp = dtype.GetProperty("lipSync");
-            var lipSyncVal = lipSyncStyleProp != null ? lipSyncStyleProp.GetValue(descriptor, null) : null;
+            var lipSyncStyleField = dtype.GetField("lipSync");
+            object lipSyncVal = null;
+            if (lipSyncStyleProp != null) lipSyncVal = lipSyncStyleProp.GetValue(descriptor, null);
+            else if (lipSyncStyleField != null) lipSyncVal = lipSyncStyleField.GetValue(descriptor);
+            // Debug: record lipSync prop/field detection
+            // _lsLipSyncPropFound = (lipSyncStyleProp != null) || (lipSyncStyleField != null);
             string lipSyncStyleName = lipSyncVal != null ? lipSyncVal.ToString() : null;
+            // Debug: record lipSync mode string
+            // _lsLipSyncMode = lipSyncStyleName;
             if (string.IsNullOrEmpty(lipSyncStyleName)) return;
             if (!lipSyncStyleName.Contains("VisemeBlendShape")) return; // only relevant when using blendshape visemes
+            // Debug: record viseme mode flag
+            // _lsIsVisemeBlendshape = true;
 
             // Fetch visemeSkinnedMesh and visemeBlendShapes string array
             var smrProp = dtype.GetProperty("VisemeSkinnedMesh");
+            var smrField = dtype.GetField("VisemeSkinnedMesh");
             var namesProp = dtype.GetProperty("VisemeBlendShapes");
-            if (smrProp == null || namesProp == null) return;
-            var visemeSmr = smrProp.GetValue(descriptor, null) as SkinnedMeshRenderer;
-            var names = namesProp.GetValue(descriptor, null) as string[];
+            var namesField = dtype.GetField("VisemeBlendShapes");
+            if (smrProp == null && smrField == null) { /* Debug: _lsSmrPropFound = false; */ return; }
+            if (namesProp == null && namesField == null) { /* Debug: _lsNamesPropFound = false; */ return; }
+            // Debug: record prop/field presence
+            // _lsSmrPropFound = (smrProp != null) || (smrField != null);
+            // _lsNamesPropFound = (namesProp != null) || (namesField != null);
+            var visemeSmrObj = smrProp != null ? smrProp.GetValue(descriptor, null) : smrField.GetValue(descriptor);
+            var visemeSmr = visemeSmrObj as SkinnedMeshRenderer;
+            // Debug: record SMR name
+            // _lsSmrName = visemeSmr ? visemeSmr.name : null;
+            var namesObj = namesProp != null ? namesProp.GetValue(descriptor, null) : namesField.GetValue(descriptor);
+            var names = namesObj as string[];
             if (names == null || names.Length == 0) return;
-
-            // If the descriptor points to the same SMR as our target, mark those names for exclusion
-            if (visemeSmr == targetSkinnedMesh)
+            // Debug: record names count and sample
+            // _lsNamesCount = names.Length;
+            // for (int si = 0; si < names.Length && si < 10; si++)
+            // {
+            //     if (!string.IsNullOrEmpty(names[si])) _lsNamesSample.Add(names[si]);
+            // }
+            // Relaxed condition: exclude by name match regardless of which SMR is assigned
+            var set = new HashSet<string>(names);
+            for (int i = 0; i < blendNames.Count; i++)
             {
-                var set = new HashSet<string>(names);
-                for (int i = 0; i < blendNames.Count; i++)
+                if (!string.IsNullOrEmpty(blendNames[i]) && set.Contains(blendNames[i]))
                 {
-                    if (!string.IsNullOrEmpty(blendNames[i]) && set.Contains(blendNames[i]))
-                    {
-                        isLipSyncShapeCache[i] = true;
-                    }
+                    isLipSyncShapeCache[i] = true;
                 }
             }
         }

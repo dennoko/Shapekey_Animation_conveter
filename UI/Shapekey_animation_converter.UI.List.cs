@@ -63,6 +63,44 @@ public partial class Shapekey_animation_converter
         // List (framed)
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
         scroll = EditorGUILayout.BeginScrollView(scroll);
+
+        // Debug: LipSync 検出サマリと一覧（コメントアウト）
+        // int lipCount = 0;
+        // for (int di = 0; di < isLipSyncShapeCache.Count && di < blendNames.Count; di++)
+        // {
+        //     if (isLipSyncShapeCache[di]) lipCount++;
+        // }
+        // EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+        // EditorGUILayout.LabelField("Debug: LipSync 検出サマリ", EditorStyles.boldLabel);
+        // EditorGUILayout.LabelField($"Descriptor: {(_lsDescFound ? "Found" : "Not Found")}", EditorStyles.miniLabel);
+        // EditorGUILayout.LabelField($"lipSync prop: {(_lsLipSyncPropFound ? "Found" : "Not Found")}", EditorStyles.miniLabel);
+        // EditorGUILayout.LabelField($"lipSync mode: {(_lsLipSyncMode ?? "null")}", EditorStyles.miniLabel);
+        // EditorGUILayout.LabelField($"is VisemeBlendShape: {(_lsIsVisemeBlendshape ? "Yes" : "No")}", EditorStyles.miniLabel);
+        // EditorGUILayout.LabelField($"Viseme SMR: {(_lsSmrPropFound ? (_lsSmrName ?? "<null>") : "prop/field-missing")}", EditorStyles.miniLabel);
+        // EditorGUILayout.LabelField($"Viseme names: {(_lsNamesPropFound ? _lsNamesCount.ToString() : "prop/field-missing")}", EditorStyles.miniLabel);
+        // if (_lsNamesSample != null && _lsNamesSample.Count > 0)
+        // {
+        //     string sample = string.Join(", ", _lsNamesSample.ToArray());
+        //     EditorGUILayout.LabelField($"Sample: {sample}", EditorStyles.miniLabel);
+        // }
+        // _debugLipSyncFoldout = EditorGUILayout.Foldout(_debugLipSyncFoldout, $"リップシンク検出一覧 ({lipCount})", true);
+        // if (_debugLipSyncFoldout && lipCount > 0)
+        // {
+        //     int shown = 0;
+        //     for (int di = 0; di < isLipSyncShapeCache.Count && di < blendNames.Count; di++)
+        //     {
+        //         if (!isLipSyncShapeCache[di]) continue;
+        //         EditorGUILayout.LabelField($"- {blendNames[di]}", EditorStyles.miniLabel);
+        //         shown++;
+        //         if (shown >= 50)
+        //         {
+        //             EditorGUILayout.LabelField("…(省略)", EditorStyles.miniLabel);
+        //             break;
+        //         }
+        //     }
+        // }
+        // EditorGUILayout.EndVertical();
+        // EditorGUILayout.Space(4);
         for (int s = 0; s < groupSegments.Count; s++)
         {
             var seg = groupSegments[s];
