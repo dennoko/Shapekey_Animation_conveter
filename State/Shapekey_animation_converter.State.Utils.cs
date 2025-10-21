@@ -68,4 +68,57 @@ public partial class Shapekey_animation_converter
         }
         return best;
     }
+
+    // Build cache for lip sync blendshapes to exclude, using VRC Avatar Descriptor if present
+    void BuildLipSyncExclusionCache()
+    {
+        isLipSyncShapeCache.Clear();
+        for (int i = 0; i < blendNames.Count; i++) isLipSyncShapeCache.Add(false);
+        try
+        {
+            if (targetSkinnedMesh == null) return;
+            var avatarRoot = targetSkinnedMesh.transform.root;
+            if (avatarRoot == null) return;
+            // Find a component named "VRC_AvatarDescriptor" via reflection (no hard reference)
+            var comps = avatarRoot.GetComponents<Component>();
+            Component descriptor = null;
+            foreach (var c in comps)
+            {
+                if (c == null) continue;
+                var t = c.GetType();
+                if (t.Name == "VRC_AvatarDescriptor") { descriptor = c; break; }
+            }
+            if (descriptor == null) return;
+
+            var dtype = descriptor.GetType();
+            // lipSync style property enum; when "VisemeBlendShape" or similar, a SkinnedMeshRenderer and names are used
+            var lipSyncStyleProp = dtype.GetProperty("lipSync");
+            var lipSyncVal = lipSyncStyleProp != null ? lipSyncStyleProp.GetValue(descriptor, null) : null;
+            string lipSyncStyleName = lipSyncVal != null ? lipSyncVal.ToString() : null;
+            if (string.IsNullOrEmpty(lipSyncStyleName)) return;
+            if (!lipSyncStyleName.Contains("VisemeBlendShape")) return; // only relevant when using blendshape visemes
+
+            // Fetch visemeSkinnedMesh and visemeBlendShapes string array
+            var smrProp = dtype.GetProperty("VisemeSkinnedMesh");
+            var namesProp = dtype.GetProperty("VisemeBlendShapes");
+            if (smrProp == null || namesProp == null) return;
+            var visemeSmr = smrProp.GetValue(descriptor, null) as SkinnedMeshRenderer;
+            var names = namesProp.GetValue(descriptor, null) as string[];
+            if (names == null || names.Length == 0) return;
+
+            // If the descriptor points to the same SMR as our target, mark those names for exclusion
+            if (visemeSmr == targetSkinnedMesh)
+            {
+                var set = new HashSet<string>(names);
+                for (int i = 0; i < blendNames.Count; i++)
+                {
+                    if (!string.IsNullOrEmpty(blendNames[i]) && set.Contains(blendNames[i]))
+                    {
+                        isLipSyncShapeCache[i] = true;
+                    }
+                }
+            }
+        }
+        catch { }
+    }
 }

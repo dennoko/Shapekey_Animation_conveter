@@ -8,7 +8,7 @@ public partial class Shapekey_animation_converter
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("DenEmo", EditorStyles.boldLabel);
         GUILayout.FlexibleSpace();
-        var newLang = EditorGUILayout.ToggleLeft(DenEmoLoc.T("ui.lang.englishMode"), DenEmoLoc.EnglishMode, GUILayout.Width(120));
+        var newLang = EditorGUILayout.ToggleLeft(DenEmoLoc.T("ui.lang.englishMode"), DenEmoLoc.EnglishMode, GUILayout.Width(140));
         if (newLang != DenEmoLoc.EnglishMode)
         {
             DenEmoLoc.EnglishMode = newLang;

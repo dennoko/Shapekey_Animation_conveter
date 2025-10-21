@@ -110,7 +110,7 @@ public partial class Shapekey_animation_converter
                 {
                     for (int i = start; i < end; i++)
                     {
-                        if (i < isVrcShapeCache.Count && isVrcShapeCache[i]) continue;
+                        if ((i < isVrcShapeCache.Count && isVrcShapeCache[i]) || (i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
                         includeFlags[i] = newGroupVal;
                     }
                     filterCacheDirty = true; // Mark cache dirty when include flags change
@@ -123,6 +123,8 @@ public partial class Shapekey_animation_converter
             {
                 if (i < start || i >= end) continue; // Only render indices in this segment
                 if (treatAsGroup && IsGroupCollapsed(seg.key)) continue; // Skip children when group collapsed
+                // Skip lip-sync reserved shapes from being toggled/edited
+                if ((i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
 
                 EditorGUILayout.BeginHorizontal();
                 if (treatAsGroup) GUILayout.Space(24);

@@ -40,7 +40,8 @@ public partial class Shapekey_animation_converter
     bool isSliderDragging = false;
     int currentDraggingIndex = -1;
         // Performance optimization: cached filter results and flags
-        List<bool> isVrcShapeCache = new List<bool>();
+    List<bool> isVrcShapeCache = new List<bool>();
+    List<bool> isLipSyncShapeCache = new List<bool>();
         List<int> visibleIndices = new List<int>(); // Cached list of indices that pass all filters
         string lastSearchText = null;
         bool lastShowOnlyIncluded = false;
@@ -146,6 +147,7 @@ public partial class Shapekey_animation_converter
         blendValues.Clear();
         includeFlags.Clear();
         isVrcShapeCache.Clear();
+    isLipSyncShapeCache.Clear();
         groupToIndices.Clear();
         groupOrder.Clear();
         groupSegments.Clear();
@@ -160,6 +162,8 @@ public partial class Shapekey_animation_converter
             includeFlags.Add(true); // default include
             isVrcShapeCache.Add(IsVrcShapeName(name)); // Cache VRC check
         }
+        // Build lip-sync exclusion cache based on VRC Avatar Descriptor (if present)
+        BuildLipSyncExclusionCache();
         // Do NOT overwrite tool values or apply to mesh when switching target
         // Tool should reflect current mesh state by default
         // Try to restore include flags for this mesh/instance
@@ -258,7 +262,7 @@ public partial class Shapekey_animation_converter
         for (int i = 0; i < blendNames.Count; i++)
         {
             // Skip VRC shapes (cached)
-            if (i < isVrcShapeCache.Count && isVrcShapeCache[i]) continue;
+            if ((i < isVrcShapeCache.Count && isVrcShapeCache[i]) || (i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
         
             // Check search filter
             if (!MatchesAllTokens(blendNames[i], searchTokens)) continue;

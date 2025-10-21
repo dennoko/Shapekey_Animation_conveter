@@ -33,8 +33,8 @@ public partial class Shapekey_animation_converter
             if (i < includeFlags.Count && includeFlags[i]) includeIndices.Add(i);
         }
 
-        // Always exclude VRChat control shapekeys from saving
-        includeIndices.RemoveAll(idx => IsVrcShapeName(blendNames[idx]));
+    // Always exclude VRChat control shapekeys and lip-sync visemes from saving
+    includeIndices.RemoveAll(idx => IsVrcShapeName(blendNames[idx]) || (idx < isLipSyncShapeCache.Count && isLipSyncShapeCache[idx]));
 
         // 検索一致による保存除外機能は削除しました
 
