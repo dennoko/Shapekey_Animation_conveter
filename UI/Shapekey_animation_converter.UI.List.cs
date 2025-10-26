@@ -155,32 +155,26 @@ public partial class Shapekey_animation_converter
             // Rendering
             if (symmetryMode)
             {
-                // Build LR maps within this segment using cached global pairs and parse results
+                // 1) Collect segment bases and non-LR singles
                 var segBases = new System.Collections.Generic.HashSet<string>();
-                var nonLR = new System.Collections.Generic.List<int>();
+                var singles = new System.Collections.Generic.List<int>();
                 for (int i = start; i < end; i++)
                 {
                     if ((i < isVrcShapeCache.Count && isVrcShapeCache[i]) || (i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
                     var name = blendNames[i];
-                    // Use cached parse
-                    if (lrParseCache.TryGetValue(name, out var parsed))
+                    if (lrParseCache.TryGetValue(name, out var parsed) && (parsed.side == LRSide.L || parsed.side == LRSide.R))
                     {
-                        if (parsed.side == LRSide.L || parsed.side == LRSide.R)
-                        {
-                            segBases.Add(parsed.baseName);
-                        }
-                        else
-                        {
-                            nonLR.Add(i);
-                        }
+                        segBases.Add(parsed.baseName);
                     }
                     else
                     {
-                        nonLR.Add(i);
+                        singles.Add(i);
                     }
                 }
 
-                // Render merged LR rows over the segment-relevant base names
+                // 2) Decide which bases to merge (only when L/R values are equal within epsilon); otherwise add members to singles
+                const float EPS = 0.001f;
+                var mergedList = new System.Collections.Generic.List<System.Tuple<string,int,int>>();
                 foreach (var baseName in segBases)
                 {
                     int li = baseToLIndex.ContainsKey(baseName) ? baseToLIndex[baseName] : -1;
@@ -190,14 +184,40 @@ public partial class Shapekey_animation_converter
                     if (ri >= 0 && (ri < start || ri >= end)) ri = -1;
                     bool leftVis = li >= 0 && (li < visibleFlags.Count && visibleFlags[li]);
                     bool rightVis = ri >= 0 && (ri < visibleFlags.Count && visibleFlags[ri]);
-                    if (!leftVis && !rightVis) continue; // only show if either side visible
+                    if (!leftVis && !rightVis) continue; // nothing visible in this pair
+                    bool both = li >= 0 && ri >= 0;
+                    if (both)
+                    {
+                        float lv = blendValues[li];
+                        float rv = blendValues[ri];
+                        if (Mathf.Abs(lv - rv) <= EPS)
+                        {
+                            mergedList.Add(new System.Tuple<string,int,int>(baseName, li, ri));
+                        }
+                        else
+                        {
+                            if (leftVis) singles.Add(li);
+                            if (rightVis) singles.Add(ri);
+                        }
+                    }
+                    else
+                    {
+                        // single-sided: add whichever side exists and is visible
+                        if (leftVis) singles.Add(li);
+                        if (rightVis) singles.Add(ri);
+                    }
+                }
+
+                // 3) Render merged rows
+                foreach (var t in mergedList)
+                {
+                    string baseName = t.Item1; int li = t.Item2; int ri = t.Item3;
                     bool both = li >= 0 && ri >= 0;
 
                     EditorGUILayout.BeginHorizontal();
                     if (treatAsGroup) GUILayout.Space(24);
 
-                    // Checkbox reflects BOTH included when both exist; mixed shows unchecked but toggling applies to both
-                    bool currentInc = true;
+                    bool currentInc;
                     if (both)
                     {
                         bool il = li < includeFlags.Count && includeFlags[li];
@@ -220,26 +240,17 @@ public partial class Shapekey_animation_converter
                         SaveIncludeFlagsPrefs();
                     }
 
-                    // Label
                     float nameWidth = Mathf.Min(220f, EditorGUIUtility.currentViewWidth * 0.35f);
                     string displayName = both ? (baseName + "_LR") : (li >= 0 ? blendNames[li] : blendNames[ri]);
                     EditorGUILayout.LabelField(displayName, GUILayout.Width(nameWidth));
 
-                    // Zero button
                     if (GUILayout.Button("0", EditorStyles.miniButton, GUILayout.Width(22)))
                     {
                         if (targetSkinnedMesh != null) Undo.RecordObject(targetSkinnedMesh, "Reset Shape Key to 0");
-                        if (li >= 0 && blendValues[li] != 0f)
-                        {
-                            blendValues[li] = 0f; if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(li, 0f);
-                        }
-                        if (ri >= 0 && blendValues[ri] != 0f)
-                        {
-                            blendValues[ri] = 0f; if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(ri, 0f);
-                        }
+                        if (li >= 0 && blendValues[li] != 0f) { blendValues[li] = 0f; if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(li, 0f); }
+                        if (ri >= 0 && blendValues[ri] != 0f) { blendValues[ri] = 0f; if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(ri, 0f); }
                     }
 
-                    // Slider (one control for both)
                     int primary = li >= 0 ? li : ri;
                     float oldValue = blendValues[primary];
                     int sliderId = GUIUtility.GetControlID(FocusType.Passive);
@@ -261,7 +272,6 @@ public partial class Shapekey_animation_converter
                         {
                             Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
                         }
-                        // Set both sides
                         if (li >= 0) { blendValues[li] = newValue; }
                         if (ri >= 0) { blendValues[ri] = newValue; }
                         if (targetSkinnedMesh)
@@ -295,12 +305,13 @@ public partial class Shapekey_animation_converter
                     GUILayout.Space(3f);
                 }
 
-                // Render non-LR singles
-                foreach (int i in nonLR)
+                // 4) Render singles (non-LR + unmerged LR members), in segment order without duplicates
+                var singlesSet = new System.Collections.Generic.HashSet<int>(singles);
+                for (int i = start; i < end; i++)
                 {
+                    if (!singlesSet.Contains(i)) continue;
                     if (!(i < visibleFlags.Count && visibleFlags[i])) continue;
                     if (treatAsGroup && IsGroupCollapsed(seg.key)) continue;
-                    // singles: reuse existing single-row code via inline
 
                     EditorGUILayout.BeginHorizontal();
                     if (treatAsGroup) GUILayout.Space(24);
