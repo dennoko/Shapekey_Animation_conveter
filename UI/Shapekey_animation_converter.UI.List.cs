@@ -153,21 +153,26 @@ public partial class Shapekey_animation_converter
             }
 
             // Rendering
-            System.Collections.Generic.HashSet<int> visSet = new System.Collections.Generic.HashSet<int>(visibleIndices);
             if (symmetryMode)
             {
-                // Build LR maps within this segment
-                var baseToL = new System.Collections.Generic.Dictionary<string, int>();
-                var baseToR = new System.Collections.Generic.Dictionary<string, int>();
+                // Build LR maps within this segment using cached global pairs and parse results
+                var segBases = new System.Collections.Generic.HashSet<string>();
                 var nonLR = new System.Collections.Generic.List<int>();
                 for (int i = start; i < end; i++)
                 {
                     if ((i < isVrcShapeCache.Count && isVrcShapeCache[i]) || (i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
                     var name = blendNames[i];
-                    if (TryParseLRSuffix(name, out var baseName, out var side))
+                    // Use cached parse
+                    if (lrParseCache.TryGetValue(name, out var parsed))
                     {
-                        if (side == LRSide.L && !baseToL.ContainsKey(baseName)) baseToL[baseName] = i;
-                        else if (side == LRSide.R && !baseToR.ContainsKey(baseName)) baseToR[baseName] = i;
+                        if (parsed.side == LRSide.L || parsed.side == LRSide.R)
+                        {
+                            segBases.Add(parsed.baseName);
+                        }
+                        else
+                        {
+                            nonLR.Add(i);
+                        }
                     }
                     else
                     {
@@ -175,15 +180,16 @@ public partial class Shapekey_animation_converter
                     }
                 }
 
-                // Render merged LR rows
-                var allBases = new System.Collections.Generic.HashSet<string>(baseToL.Keys);
-                foreach (var k in baseToR.Keys) allBases.Add(k);
-                foreach (var baseName in allBases)
+                // Render merged LR rows over the segment-relevant base names
+                foreach (var baseName in segBases)
                 {
-                    int li = baseToL.ContainsKey(baseName) ? baseToL[baseName] : -1;
-                    int ri = baseToR.ContainsKey(baseName) ? baseToR[baseName] : -1;
-                    bool leftVis = li >= 0 && visSet.Contains(li);
-                    bool rightVis = ri >= 0 && visSet.Contains(ri);
+                    int li = baseToLIndex.ContainsKey(baseName) ? baseToLIndex[baseName] : -1;
+                    int ri = baseToRIndex.ContainsKey(baseName) ? baseToRIndex[baseName] : -1;
+                    // Constrain to segment bounds
+                    if (li >= 0 && (li < start || li >= end)) li = -1;
+                    if (ri >= 0 && (ri < start || ri >= end)) ri = -1;
+                    bool leftVis = li >= 0 && (li < visibleFlags.Count && visibleFlags[li]);
+                    bool rightVis = ri >= 0 && (ri < visibleFlags.Count && visibleFlags[ri]);
                     if (!leftVis && !rightVis) continue; // only show if either side visible
                     bool both = li >= 0 && ri >= 0;
 
@@ -292,7 +298,7 @@ public partial class Shapekey_animation_converter
                 // Render non-LR singles
                 foreach (int i in nonLR)
                 {
-                    if (!visSet.Contains(i)) continue;
+                    if (!(i < visibleFlags.Count && visibleFlags[i])) continue;
                     if (treatAsGroup && IsGroupCollapsed(seg.key)) continue;
                     // singles: reuse existing single-row code via inline
 

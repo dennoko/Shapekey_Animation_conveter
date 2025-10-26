@@ -42,7 +42,8 @@ public partial class Shapekey_animation_converter
         // Performance optimization: cached filter results and flags
     List<bool> isVrcShapeCache = new List<bool>();
     List<bool> isLipSyncShapeCache = new List<bool>();
-        List<int> visibleIndices = new List<int>(); // Cached list of indices that pass all filters
+    List<int> visibleIndices = new List<int>(); // Cached list of indices that pass all filters
+    List<bool> visibleFlags = new List<bool>();  // Quick lookup per index for visibility
         string lastSearchText = null;
         bool lastShowOnlyIncluded = false;
         bool filterCacheDirty = true;
@@ -57,6 +58,12 @@ public partial class Shapekey_animation_converter
     bool showOnlyIncluded = false; // Filter UI to show only shapes currently included
     // Symmetry edit option: merge L/R suffixed shapes and edit both at once
     bool symmetryMode = false;
+
+    // Symmetry caches (performance)
+    struct LRParse { public string baseName; public LRSide side; }
+    Dictionary<string, LRParse> lrParseCache = new Dictionary<string, LRParse>(); // name -> parse
+    Dictionary<string, int> baseToLIndex = new Dictionary<string, int>();        // base -> left idx (first)
+    Dictionary<string, int> baseToRIndex = new Dictionary<string, int>();        // base -> right idx (first)
 
     // Status bar state
     enum StatusLevel { Info, Success, Warning, Error }
@@ -164,6 +171,9 @@ public partial class Shapekey_animation_converter
         includeFlags.Clear();
         isVrcShapeCache.Clear();
     isLipSyncShapeCache.Clear();
+        lrParseCache.Clear();
+        baseToLIndex.Clear();
+        baseToRIndex.Clear();
         groupToIndices.Clear();
         groupOrder.Clear();
         groupSegments.Clear();
@@ -180,6 +190,8 @@ public partial class Shapekey_animation_converter
         }
         // Build lip-sync exclusion cache based on VRC Avatar Descriptor (if present)
         BuildLipSyncExclusionCache();
+    // Build symmetry pairing caches
+    RebuildSymmetryCaches();
         // Do NOT overwrite tool values or apply to mesh when switching target
         // Tool should reflect current mesh state by default
         // Try to restore include flags for this mesh/instance
@@ -275,6 +287,9 @@ public partial class Shapekey_animation_converter
     void RebuildVisibleIndicesCache(string[] searchTokens)
     {
         visibleIndices.Clear();
+        visibleFlags.Clear();
+        // Ensure size
+        for (int i = 0; i < blendNames.Count; i++) visibleFlags.Add(false);
         for (int i = 0; i < blendNames.Count; i++)
         {
             // Skip VRC shapes (cached)
@@ -287,10 +302,45 @@ public partial class Shapekey_animation_converter
             if (showOnlyIncluded && !(i < includeFlags.Count && includeFlags[i])) continue;
         
             visibleIndices.Add(i);
+            if (i < visibleFlags.Count) visibleFlags[i] = true;
         }
         filterCacheDirty = false;
         lastSearchText = searchText;
         lastShowOnlyIncluded = showOnlyIncluded;
+    }
+
+    // Build or rebuild the symmetry pairing caches using current blendNames and exclusions
+    void RebuildSymmetryCaches()
+    {
+        lrParseCache.Clear();
+        baseToLIndex.Clear();
+        baseToRIndex.Clear();
+        for (int i = 0; i < blendNames.Count; i++)
+        {
+            // Skip explicit exclusions to avoid pairing with viseme/VRC shapes
+            if ((i < isVrcShapeCache.Count && isVrcShapeCache[i]) || (i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
+            string name = blendNames[i] ?? string.Empty;
+            if (!lrParseCache.TryGetValue(name, out var parsed))
+            {
+                if (TryParseLRSuffix(name, out var baseName, out var side))
+                {
+                    parsed = new LRParse { baseName = baseName, side = side };
+                }
+                else
+                {
+                    parsed = new LRParse { baseName = name, side = LRSide.None };
+                }
+                lrParseCache[name] = parsed;
+            }
+            if (parsed.side == LRSide.L)
+            {
+                if (!baseToLIndex.ContainsKey(parsed.baseName)) baseToLIndex[parsed.baseName] = i;
+            }
+            else if (parsed.side == LRSide.R)
+            {
+                if (!baseToRIndex.ContainsKey(parsed.baseName)) baseToRIndex[parsed.baseName] = i;
+            }
+        }
     }
 }
 
