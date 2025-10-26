@@ -22,7 +22,7 @@ DenEmoは、Unity上でSkinnedMeshRendererのシェイプキー（ブレンド�
 
 ### 左右同期編集（Symmetry）
 - フィルタ行の「Symmetry」チェックをONにすると、末尾が L/R のシェイプキーを1行に統合して表示します。
-- 対応サフィックス: `_L`/`_R`, `.L`/`.R`, `-L`/`-R`, ` (L)`/` (R)`, ` L`/` R`
+- 対応サフィックス: `_L`/`_R`, `.L`/`.R`, `-L`/`-R`, ` (L)`/` (R)`, ` L`/` R`（小文字の`l`/`r`も可）; `_左`/`_右`, `.左`/`.右`, `-左`/`-右`, ` (左)`/` (右)`, ` 左`/` 右`
 - 統合行でのスライダー操作・0ボタン・チェックは左右に同じ値で適用されます。
 - 片側しか存在しない場合は通常通り単独で表示されます。
 
@@ -59,7 +59,7 @@ DenEmo is a Unity Editor extension for efficiently editing and animating blendsh
 
 ### Symmetry Edit
 - Turn on the "Symmetry" toggle in the filter row to merge shape keys that end with L/R into a single row.
-- Supported suffixes: `_L`/`_R`, `.L`/`.R`, `-L`/`-R`, ` (L)`/` (R)`, ` L`/` R`
+- Supported suffixes: `_L`/`_R`, `.L`/`.R`, `-L`/`-R`, ` (L)`/` (R)`, ` L`/` R` (lowercase `l`/`r` also supported); `_左`/`_右`, `.左`/`.右`, `-左`/`-右`, ` (左)`/` (右)`, ` 左`/` 右`
 - Slider, zero button, and include checkbox apply to both sides simultaneously.
 - If only one side exists, it is shown as a normal single row.
 
