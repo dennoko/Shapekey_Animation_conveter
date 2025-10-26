@@ -62,6 +62,10 @@ public static class DenEmoLoc
         ["ui.filter.showIncluded"] = "有効なシェイプのみ表示",
         ["ui.filter.showIncluded.tip"] = "チェックが入っている（保存対象の）シェイプだけを一覧に表示します。",
 
+    // Symmetry
+    ["ui.symmetry.label"] = "左右同期編集",
+    ["ui.symmetry.tip"] = "末尾がL/Rのシェイプを1行にまとめ、左右を同時に編集します。",
+
         // Snapshot
         ["ui.snapshot.create"] = "一時保存（スナップショット）",
         ["ui.snapshot.restore"] = "スナップショットにリセット",
@@ -138,6 +142,10 @@ public static class DenEmoLoc
         // Filter
         ["ui.filter.showIncluded"] = "Show only enabled shapes",
         ["ui.filter.showIncluded.tip"] = "List only shapes that are checked (will be saved).",
+
+    // Symmetry
+    ["ui.symmetry.label"] = "Symmetry edit",
+    ["ui.symmetry.tip"] = "Merge L/R-suffixed shapes into one row and edit both sides together.",
 
         // Snapshot
         ["ui.snapshot.create"] = "Snapshot",

@@ -162,4 +162,37 @@ public partial class Shapekey_animation_converter
         }
         catch { }
     }
+
+    // Symmetry helpers
+    enum LRSide { None, L, R }
+
+    static bool TryParseLRSuffix(string name, out string baseName, out LRSide side)
+    {
+        baseName = name;
+        side = LRSide.None;
+        if (string.IsNullOrEmpty(name)) return false;
+        string n = name.Trim();
+        // common suffix patterns: _L/_R, .L/.R, -L/-R, ' L'/' R', '(L)'/'(R)'
+        string[,] patterns = new string[,] { {"_L", "_R"}, {".L", ".R"}, {"-L", "-R"}, {" L", " R"} };
+        // Parenthesis pattern
+        if (n.EndsWith("(L)", StringComparison.OrdinalIgnoreCase)) { baseName = n.Substring(0, n.Length - 3).TrimEnd(); side = LRSide.L; return true; }
+        if (n.EndsWith("(R)", StringComparison.OrdinalIgnoreCase)) { baseName = n.Substring(0, n.Length - 3).TrimEnd(); side = LRSide.R; return true; }
+        for (int i = 0; i < patterns.GetLength(0); i++)
+        {
+            string l = patterns[i,0];
+            string r = patterns[i,1];
+            if (n.EndsWith(l, StringComparison.OrdinalIgnoreCase)) { baseName = n.Substring(0, n.Length - l.Length); side = LRSide.L; return true; }
+            if (n.EndsWith(r, StringComparison.OrdinalIgnoreCase)) { baseName = n.Substring(0, n.Length - r.Length); side = LRSide.R; return true; }
+        }
+        return false;
+    }
+
+    static string GetSymmetryDisplayName(string name)
+    {
+        if (TryParseLRSuffix(name, out var baseName, out var side))
+        {
+            if (side != LRSide.None) return baseName + "_LR";
+        }
+        return name;
+    }
 }

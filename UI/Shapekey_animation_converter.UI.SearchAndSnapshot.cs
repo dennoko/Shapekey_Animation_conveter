@@ -13,6 +13,18 @@ public partial class Shapekey_animation_converter
         {
             showOnlyIncluded = newShowOnly;
             DenEmoProjectPrefs.SetBool("ShapekeyConverter_ShowOnlyIncluded", showOnlyIncluded);
+            filterCacheDirty = true;
+        }
+        GUILayout.Space(12);
+        // Symmetry mode toggle
+        var newSym = EditorGUILayout.ToggleLeft(new GUIContent(DenEmoLoc.T("ui.symmetry.label"), DenEmoLoc.T("ui.symmetry.tip")), symmetryMode);
+        if (newSym != symmetryMode)
+        {
+            symmetryMode = newSym;
+            DenEmoProjectPrefs.SetBool("ShapekeyConverter_SymmetryMode", symmetryMode);
+            // Rebuild caches/refresh UI
+            filterCacheDirty = true;
+            Repaint();
         }
         EditorGUILayout.EndHorizontal();
 

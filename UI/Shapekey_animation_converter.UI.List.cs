@@ -6,9 +6,7 @@ public partial class Shapekey_animation_converter
     // Time-based throttling (50ms) with coalescing during slider drags
     const double APPLY_INTERVAL_SEC = 0.05; // 50ms
     bool _throttleActive = false;           // update loop subscribed
-    bool _hasPending = false;               // have a value waiting to apply
-    int _pendingIndex = -1;                 // latest index to apply
-    float _pendingValue = 0f;               // latest value to apply
+    System.Collections.Generic.Dictionary<int, float> _pendingApplies = new System.Collections.Generic.Dictionary<int, float>();
     double _lastApplyTime = 0;              // last time we actually applied to mesh
 
     void EnsureThrottleUpdate()
@@ -27,15 +25,12 @@ public partial class Shapekey_animation_converter
             EditorApplication.update -= OnEditorUpdateApply;
             _throttleActive = false;
         }
-        _hasPending = false;
-        _pendingIndex = -1;
+        _pendingApplies.Clear();
     }
 
     void QueuePendingApply(int index, float value)
     {
-        _pendingIndex = index;
-        _pendingValue = value;
-        _hasPending = true;
+        _pendingApplies[index] = value; // coalesce: latest wins per index
         EnsureThrottleUpdate();
     }
 
@@ -46,15 +41,16 @@ public partial class Shapekey_animation_converter
             StopThrottleUpdate();
             return;
         }
-        if (!_hasPending) return;
+        if (_pendingApplies.Count == 0) return;
         double now = EditorApplication.timeSinceStartup;
         if (now - _lastApplyTime >= APPLY_INTERVAL_SEC)
         {
-            if (_pendingIndex >= 0)
+            foreach (var kv in _pendingApplies)
             {
-                targetSkinnedMesh.SetBlendShapeWeight(_pendingIndex, _pendingValue);
-                _lastApplyTime = now;
+                if (kv.Key >= 0) targetSkinnedMesh.SetBlendShapeWeight(kv.Key, kv.Value);
             }
+            _pendingApplies.Clear();
+            _lastApplyTime = now;
         }
     }
 
@@ -156,110 +152,319 @@ public partial class Shapekey_animation_converter
                 }
             }
 
-            // Use cached visible indices for rendering
-            foreach (int i in visibleIndices)
+            // Rendering
+            System.Collections.Generic.HashSet<int> visSet = new System.Collections.Generic.HashSet<int>(visibleIndices);
+            if (symmetryMode)
             {
-                if (i < start || i >= end) continue; // Only render indices in this segment
-                if (treatAsGroup && IsGroupCollapsed(seg.key)) continue; // Skip children when group collapsed
-                // Skip lip-sync reserved shapes from being toggled/edited
-                if ((i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
-
-                EditorGUILayout.BeginHorizontal();
-                if (treatAsGroup) GUILayout.Space(24);
-
-                // Exclude checkbox from Tab focus navigation
-                int checkboxId = GUIUtility.GetControlID(FocusType.Passive);
-                Rect checkboxRect = GUILayoutUtility.GetRect(18, 18, GUILayout.Width(18));
-                bool newInc = GUI.Toggle(checkboxRect, includeFlags[i], GUIContent.none);
-                if (newInc != includeFlags[i])
+                // Build LR maps within this segment
+                var baseToL = new System.Collections.Generic.Dictionary<string, int>();
+                var baseToR = new System.Collections.Generic.Dictionary<string, int>();
+                var nonLR = new System.Collections.Generic.List<int>();
+                for (int i = start; i < end; i++)
                 {
-                    includeFlags[i] = newInc;
-                    filterCacheDirty = true; // Mark cache dirty
-                    SaveIncludeFlagsPrefs();
+                    if ((i < isVrcShapeCache.Count && isVrcShapeCache[i]) || (i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
+                    var name = blendNames[i];
+                    if (TryParseLRSuffix(name, out var baseName, out var side))
+                    {
+                        if (side == LRSide.L && !baseToL.ContainsKey(baseName)) baseToL[baseName] = i;
+                        else if (side == LRSide.R && !baseToR.ContainsKey(baseName)) baseToR[baseName] = i;
+                    }
+                    else
+                    {
+                        nonLR.Add(i);
+                    }
                 }
 
-                // Label (shape name) on the left
-                float nameWidth = Mathf.Min(220f, EditorGUIUtility.currentViewWidth * 0.35f);
-                EditorGUILayout.LabelField(blendNames[i], GUILayout.Width(nameWidth));
-
-                // Reset-to-zero compact button (just left of slider)
-                if (GUILayout.Button("0", EditorStyles.miniButton, GUILayout.Width(22)))
+                // Render merged LR rows
+                var allBases = new System.Collections.Generic.HashSet<string>(baseToL.Keys);
+                foreach (var k in baseToR.Keys) allBases.Add(k);
+                foreach (var baseName in allBases)
                 {
-                    // Only act if not already zero to avoid unnecessary work
-                    if (blendValues[i] != 0f)
+                    int li = baseToL.ContainsKey(baseName) ? baseToL[baseName] : -1;
+                    int ri = baseToR.ContainsKey(baseName) ? baseToR[baseName] : -1;
+                    bool leftVis = li >= 0 && visSet.Contains(li);
+                    bool rightVis = ri >= 0 && visSet.Contains(ri);
+                    if (!leftVis && !rightVis) continue; // only show if either side visible
+                    bool both = li >= 0 && ri >= 0;
+
+                    EditorGUILayout.BeginHorizontal();
+                    if (treatAsGroup) GUILayout.Space(24);
+
+                    // Checkbox reflects BOTH included when both exist; mixed shows unchecked but toggling applies to both
+                    bool currentInc = true;
+                    if (both)
+                    {
+                        bool il = li < includeFlags.Count && includeFlags[li];
+                        bool ir = ri < includeFlags.Count && includeFlags[ri];
+                        currentInc = il && ir;
+                    }
+                    else
+                    {
+                        int pi = li >= 0 ? li : ri;
+                        currentInc = pi < includeFlags.Count && includeFlags[pi];
+                    }
+                    int checkboxId = GUIUtility.GetControlID(FocusType.Passive);
+                    Rect checkboxRect = GUILayoutUtility.GetRect(18, 18, GUILayout.Width(18));
+                    bool newInc = GUI.Toggle(checkboxRect, currentInc, GUIContent.none);
+                    if (newInc != currentInc)
+                    {
+                        if (li >= 0) includeFlags[li] = newInc;
+                        if (ri >= 0) includeFlags[ri] = newInc;
+                        filterCacheDirty = true;
+                        SaveIncludeFlagsPrefs();
+                    }
+
+                    // Label
+                    float nameWidth = Mathf.Min(220f, EditorGUIUtility.currentViewWidth * 0.35f);
+                    string displayName = both ? (baseName + "_LR") : (li >= 0 ? blendNames[li] : blendNames[ri]);
+                    EditorGUILayout.LabelField(displayName, GUILayout.Width(nameWidth));
+
+                    // Zero button
+                    if (GUILayout.Button("0", EditorStyles.miniButton, GUILayout.Width(22)))
+                    {
+                        if (targetSkinnedMesh != null) Undo.RecordObject(targetSkinnedMesh, "Reset Shape Key to 0");
+                        if (li >= 0 && blendValues[li] != 0f)
+                        {
+                            blendValues[li] = 0f; if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(li, 0f);
+                        }
+                        if (ri >= 0 && blendValues[ri] != 0f)
+                        {
+                            blendValues[ri] = 0f; if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(ri, 0f);
+                        }
+                    }
+
+                    // Slider (one control for both)
+                    int primary = li >= 0 ? li : ri;
+                    float oldValue = blendValues[primary];
+                    int sliderId = GUIUtility.GetControlID(FocusType.Passive);
+                    EditorGUI.BeginChangeCheck();
+                    float newValue = EditorGUILayout.Slider(oldValue, 0f, 100f);
+                    bool valueChanged = EditorGUI.EndChangeCheck();
+                    bool isThisSliderHot = (GUIUtility.hotControl == sliderId || GUIUtility.hotControl == sliderId + 1);
+
+                    if (valueChanged && isThisSliderHot && (!isSliderDragging || currentDraggingIndex != primary))
+                    {
+                        if (targetSkinnedMesh != null) Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
+                        isSliderDragging = true;
+                        currentDraggingIndex = primary;
+                    }
+
+                    if (valueChanged)
+                    {
+                        if (!isThisSliderHot && !isSliderDragging && targetSkinnedMesh != null)
+                        {
+                            Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
+                        }
+                        // Set both sides
+                        if (li >= 0) { blendValues[li] = newValue; }
+                        if (ri >= 0) { blendValues[ri] = newValue; }
+                        if (targetSkinnedMesh)
+                        {
+                            if (isThisSliderHot || isSliderDragging)
+                            {
+                                if (li >= 0) QueuePendingApply(li, newValue);
+                                if (ri >= 0) QueuePendingApply(ri, newValue);
+                            }
+                            else
+                            {
+                                if (li >= 0) targetSkinnedMesh.SetBlendShapeWeight(li, newValue);
+                                if (ri >= 0) targetSkinnedMesh.SetBlendShapeWeight(ri, newValue);
+                            }
+                        }
+                    }
+
+                    if (isSliderDragging && currentDraggingIndex == primary && !isThisSliderHot)
+                    {
+                        isSliderDragging = false;
+                        currentDraggingIndex = -1;
+                        if (targetSkinnedMesh)
+                        {
+                            if (li >= 0) targetSkinnedMesh.SetBlendShapeWeight(li, blendValues[li]);
+                            if (ri >= 0) targetSkinnedMesh.SetBlendShapeWeight(ri, blendValues[ri]);
+                        }
+                        StopThrottleUpdate();
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+                    GUILayout.Space(3f);
+                }
+
+                // Render non-LR singles
+                foreach (int i in nonLR)
+                {
+                    if (!visSet.Contains(i)) continue;
+                    if (treatAsGroup && IsGroupCollapsed(seg.key)) continue;
+                    // singles: reuse existing single-row code via inline
+
+                    EditorGUILayout.BeginHorizontal();
+                    if (treatAsGroup) GUILayout.Space(24);
+
+                    int checkboxId2 = GUIUtility.GetControlID(FocusType.Passive);
+                    Rect checkboxRect2 = GUILayoutUtility.GetRect(18, 18, GUILayout.Width(18));
+                    bool newInc2 = GUI.Toggle(checkboxRect2, includeFlags[i], GUIContent.none);
+                    if (newInc2 != includeFlags[i])
+                    {
+                        includeFlags[i] = newInc2;
+                        filterCacheDirty = true;
+                        SaveIncludeFlagsPrefs();
+                    }
+
+                    float nameWidth2 = Mathf.Min(220f, EditorGUIUtility.currentViewWidth * 0.35f);
+                    EditorGUILayout.LabelField(blendNames[i], GUILayout.Width(nameWidth2));
+
+                    if (GUILayout.Button("0", EditorStyles.miniButton, GUILayout.Width(22)))
+                    {
+                        if (blendValues[i] != 0f)
+                        {
+                            if (targetSkinnedMesh != null) Undo.RecordObject(targetSkinnedMesh, "Reset Shape Key to 0");
+                            blendValues[i] = 0f;
+                            if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, 0f);
+                        }
+                    }
+
+                    float oldValue2 = blendValues[i];
+                    int sliderId2 = GUIUtility.GetControlID(FocusType.Passive);
+                    EditorGUI.BeginChangeCheck();
+                    float newValue2 = EditorGUILayout.Slider(oldValue2, 0f, 100f);
+                    bool valueChanged2 = EditorGUI.EndChangeCheck();
+                    bool isThisSliderHot2 = (GUIUtility.hotControl == sliderId2 || GUIUtility.hotControl == sliderId2 + 1);
+                    if (valueChanged2 && isThisSliderHot2 && (!isSliderDragging || currentDraggingIndex != i))
+                    {
+                        if (targetSkinnedMesh != null) Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
+                        isSliderDragging = true;
+                        currentDraggingIndex = i;
+                    }
+                    if (valueChanged2)
+                    {
+                        if (!isThisSliderHot2 && !isSliderDragging && targetSkinnedMesh != null)
+                        {
+                            Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
+                        }
+                        blendValues[i] = newValue2;
+                        if (targetSkinnedMesh)
+                        {
+                            if (isThisSliderHot2 || isSliderDragging) QueuePendingApply(i, newValue2);
+                            else targetSkinnedMesh.SetBlendShapeWeight(i, newValue2);
+                        }
+                    }
+                    if (isSliderDragging && currentDraggingIndex == i && !isThisSliderHot2)
+                    {
+                        isSliderDragging = false;
+                        currentDraggingIndex = -1;
+                        if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, blendValues[i]);
+                        StopThrottleUpdate();
+                    }
+                    EditorGUILayout.EndHorizontal();
+                    GUILayout.Space(3f);
+                }
+            }
+            else
+            {
+                // Original per-index rendering when symmetry is off
+                foreach (int i in visibleIndices)
+                {
+                    if (i < start || i >= end) continue; // Only render indices in this segment
+                    if (treatAsGroup && IsGroupCollapsed(seg.key)) continue; // Skip children when group collapsed
+                    // Skip lip-sync reserved shapes from being toggled/edited
+                    if ((i < isLipSyncShapeCache.Count && isLipSyncShapeCache[i])) continue;
+
+                    EditorGUILayout.BeginHorizontal();
+                    if (treatAsGroup) GUILayout.Space(24);
+
+                    // Exclude checkbox from Tab focus navigation
+                    int checkboxId = GUIUtility.GetControlID(FocusType.Passive);
+                    Rect checkboxRect = GUILayoutUtility.GetRect(18, 18, GUILayout.Width(18));
+                    bool newInc = GUI.Toggle(checkboxRect, includeFlags[i], GUIContent.none);
+                    if (newInc != includeFlags[i])
+                    {
+                        includeFlags[i] = newInc;
+                        filterCacheDirty = true; // Mark cache dirty
+                        SaveIncludeFlagsPrefs();
+                    }
+
+                    // Label (shape name) on the left
+                    float nameWidth = Mathf.Min(220f, EditorGUIUtility.currentViewWidth * 0.35f);
+                    EditorGUILayout.LabelField(blendNames[i], GUILayout.Width(nameWidth));
+
+                    // Reset-to-zero compact button (just left of slider)
+                    if (GUILayout.Button("0", EditorStyles.miniButton, GUILayout.Width(22)))
+                    {
+                        // Only act if not already zero to avoid unnecessary work
+                        if (blendValues[i] != 0f)
+                        {
+                            if (targetSkinnedMesh != null)
+                            {
+                                Undo.RecordObject(targetSkinnedMesh, "Reset Shape Key to 0");
+                            }
+                            blendValues[i] = 0f;
+                            if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, 0f);
+                        }
+                    }
+
+                    // Slider with Undo support (no label)
+                    float oldValue = blendValues[i];
+                    // Get control ID before the slider
+                    int sliderId = GUIUtility.GetControlID(FocusType.Passive);
+
+                    EditorGUI.BeginChangeCheck();
+                    float newValue = EditorGUILayout.Slider(oldValue, 0f, 100f);
+                    bool valueChanged = EditorGUI.EndChangeCheck();
+
+                    // Check if this slider is currently being interacted with
+                    bool isThisSliderHot = (GUIUtility.hotControl == sliderId || GUIUtility.hotControl == sliderId + 1);
+
+                    // Record undo at the start of interaction (first change while not dragging)
+                    if (valueChanged && isThisSliderHot && (!isSliderDragging || currentDraggingIndex != i))
                     {
                         if (targetSkinnedMesh != null)
                         {
-                            Undo.RecordObject(targetSkinnedMesh, "Reset Shape Key to 0");
+                            Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
                         }
-                        blendValues[i] = 0f;
-                        if (targetSkinnedMesh) targetSkinnedMesh.SetBlendShapeWeight(i, 0f);
-                    }
-                }
-
-                // Slider with Undo support (no label)
-                float oldValue = blendValues[i];
-                // Get control ID before the slider
-                int sliderId = GUIUtility.GetControlID(FocusType.Passive);
-
-                EditorGUI.BeginChangeCheck();
-                float newValue = EditorGUILayout.Slider(oldValue, 0f, 100f);
-                bool valueChanged = EditorGUI.EndChangeCheck();
-
-                // Check if this slider is currently being interacted with
-                bool isThisSliderHot = (GUIUtility.hotControl == sliderId || GUIUtility.hotControl == sliderId + 1);
-
-                // Record undo at the start of interaction (first change while not dragging)
-                if (valueChanged && isThisSliderHot && (!isSliderDragging || currentDraggingIndex != i))
-                {
-                    if (targetSkinnedMesh != null)
-                    {
-                        Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
-                    }
-                    isSliderDragging = true;
-                    currentDraggingIndex = i;
-                }
-
-                // Apply value change immediately
-                if (valueChanged)
-                {
-                    // If changed but no hot control, it's a direct input (not drag) - record undo
-                    if (!isThisSliderHot && !isSliderDragging && targetSkinnedMesh != null)
-                    {
-                        Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
+                        isSliderDragging = true;
+                        currentDraggingIndex = i;
                     }
 
-                    blendValues[i] = newValue;
-                    if (targetSkinnedMesh)
+                    // Apply value change immediately
+                    if (valueChanged)
                     {
-                        // During drag: time-based throttling with coalescing; direct input applies immediately
-                        if (isThisSliderHot || isSliderDragging)
+                        // If changed but no hot control, it's a direct input (not drag) - record undo
+                        if (!isThisSliderHot && !isSliderDragging && targetSkinnedMesh != null)
                         {
-                            QueuePendingApply(i, newValue);
+                            Undo.RecordObject(targetSkinnedMesh, "Change Shape Key Value");
                         }
-                        else
+
+                        blendValues[i] = newValue;
+                        if (targetSkinnedMesh)
                         {
-                            targetSkinnedMesh.SetBlendShapeWeight(i, newValue);
+                            // During drag: time-based throttling with coalescing; direct input applies immediately
+                            if (isThisSliderHot || isSliderDragging)
+                            {
+                                QueuePendingApply(i, newValue);
+                            }
+                            else
+                            {
+                                targetSkinnedMesh.SetBlendShapeWeight(i, newValue);
+                            }
                         }
                     }
-                }
 
-                // Detect end of drag - when this slider was hot but now isn't
-                if (isSliderDragging && currentDraggingIndex == i && !isThisSliderHot)
-                {
-                    isSliderDragging = false;
-                    currentDraggingIndex = -1;
-                    // Flush final value and stop throttling loop
-                    if (targetSkinnedMesh)
+                    // Detect end of drag - when this slider was hot but now isn't
+                    if (isSliderDragging && currentDraggingIndex == i && !isThisSliderHot)
                     {
-                        targetSkinnedMesh.SetBlendShapeWeight(i, blendValues[i]);
+                        isSliderDragging = false;
+                        currentDraggingIndex = -1;
+                        // Flush final value and stop throttling loop
+                        if (targetSkinnedMesh)
+                        {
+                            targetSkinnedMesh.SetBlendShapeWeight(i, blendValues[i]);
+                        }
+                        StopThrottleUpdate();
                     }
-                    StopThrottleUpdate();
-                }
 
-                EditorGUILayout.EndHorizontal();
-                // Add small vertical padding between items (~3px)
-                GUILayout.Space(3f);
+                    EditorGUILayout.EndHorizontal();
+                    // Add small vertical padding between items (~3px)
+                    GUILayout.Space(3f);
+                }
             }
         }
         EditorGUILayout.EndScrollView();

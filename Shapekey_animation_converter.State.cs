@@ -55,6 +55,8 @@ public partial class Shapekey_animation_converter
     // Options
     bool alignToExistingClipKeys = false; // When saving, include only keys found in loadedClip; disables excludeZero
     bool showOnlyIncluded = false; // Filter UI to show only shapes currently included
+    // Symmetry edit option: merge L/R suffixed shapes and edit both at once
+    bool symmetryMode = false;
 
     // Status bar state
     enum StatusLevel { Info, Success, Warning, Error }
@@ -87,6 +89,7 @@ public partial class Shapekey_animation_converter
         searchText = DenEmoProjectPrefs.GetString(PREF_SEARCH_TEXT, string.Empty);
         alignToExistingClipKeys = DenEmoProjectPrefs.GetBool(PREF_ALIGN_TO_CLIP, false);
         showOnlyIncluded = DenEmoProjectPrefs.GetBool(PREF_SHOW_ONLY_INCLUDED, false);
+        symmetryMode = DenEmoProjectPrefs.GetBool("ShapekeyConverter_SymmetryMode", false);
         var last = DenEmoProjectPrefs.GetString(PREF_LAST_TARGET, string.Empty);
         if (!string.IsNullOrEmpty(last))
         {
@@ -127,6 +130,7 @@ public partial class Shapekey_animation_converter
         DenEmoProjectPrefs.SetString(PREF_SEARCH_TEXT, searchText);
         DenEmoProjectPrefs.SetBool(PREF_ALIGN_TO_CLIP, alignToExistingClipKeys);
         DenEmoProjectPrefs.SetBool(PREF_SHOW_ONLY_INCLUDED, showOnlyIncluded);
+    DenEmoProjectPrefs.SetBool("ShapekeyConverter_SymmetryMode", symmetryMode);
         // persist snapshot if exists
         if (snapshotValues != null && snapshotValues.Count > 0)
         {
