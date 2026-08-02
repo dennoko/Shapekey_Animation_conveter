@@ -26,7 +26,8 @@ namespace DenEmo.UI
         internal static StyleSheet LoadStyles() => Load<StyleSheet>(StylesUssGuid);
 
         /// <summary>
-        /// ルート要素に dennoko-root と保険背景色を設定し、テーマ + DenEmo 固有 USS を適用する。
+        /// ルート要素に dennoko-root と保険背景色を設定し、テーマ + DenEmo 固有 USS と
+        /// 標準フォントを適用する。すべての EditorWindow / PopupWindowContent はここを通す。
         /// </summary>
         internal static void SetupRoot(VisualElement root)
         {
@@ -37,6 +38,7 @@ namespace DenEmo.UI
             if (theme != null) root.styleSheets.Add(theme);
             var styles = LoadStyles();
             if (styles != null) root.styleSheets.Add(styles);
+            DennokoUIFont.Apply(root);
         }
 
         internal static VisualTreeAsset LoadVisualTree(string guid) => Load<VisualTreeAsset>(guid);

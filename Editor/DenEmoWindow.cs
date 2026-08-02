@@ -544,9 +544,10 @@ namespace DenEmo
         private void UpdateModeTabVisuals()
         {
             if (_tabPose == null) return;
-            _tabPose.EnableInClassList("dennoko-tab--active", _currentMode == EditorMode.Pose);
-            _tabAnim.EnableInClassList("dennoko-tab--active", _currentMode == EditorMode.Animation);
-            _tabFx.EnableInClassList("dennoko-tab--active",   _currentMode == EditorMode.FxSetup);
+            // 選択中は dennoko-button-active（テーマ側で枠が info の青になる）
+            _tabPose.EnableInClassList("dennoko-button-active", _currentMode == EditorMode.Pose);
+            _tabAnim.EnableInClassList("dennoko-button-active", _currentMode == EditorMode.Animation);
+            _tabFx.EnableInClassList("dennoko-button-active",   _currentMode == EditorMode.FxSetup);
         }
 
         /// <summary>モードに応じて Pose / Animation / FX 用コンテンツの表示を切り替える。</summary>

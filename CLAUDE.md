@@ -52,3 +52,7 @@ Colors and styles live in USS: theme tokens in `UI/DennokoTheme.uss` (the `denno
 - Semantic: `--dennoko-semantic-info/warning/success/error` (and `.dennoko-text-*` helpers).
 - Custom canvas drawing (`TimelineUITKView` Painter2D) reads theme colors via `CustomStyleProperty<Color>` on a `CustomStyleResolvedEvent`, not hardcoded values.
 - UXML/USS are loaded by GUID via `UI/DenEmoUiAssets.cs`; `.meta` files carry those GUIDs.
+- **Never write `!important` in USS** — Unity does not support it and discards the whole declaration. Win with specificity: every custom `.dennoko-*` selector must be prefixed with `.dennoko-root`, otherwise the generic `.dennoko-root .unity-text-element` / `.unity-button` resets (0,2,0) beat it.
+- Selected/active state in a mutually exclusive button group (mode tabs, filter chips, timeline toggles) = `EnableInClassList("dennoko-button-active", …)` only. The theme paints a `--dennoko-semantic-info` blue border; don't override the border color per-component.
+- `Utils/DennokoUIFont.cs` is the shared font manager (OS Meiryo → SDF FontAsset, self-healing against atlas eviction). `DenEmoUiAssets.SetupRoot()` calls `DennokoUIFont.Apply(root)` — never build a `FontAsset` anywhere else. Add newly introduced Japanese UI characters to its `WarmupJapanese` constant.
+- Layout goes in USS, not `element.style.*` in C#. Only per-instance dynamic values (`display`, computed widths/heights) belong inline.

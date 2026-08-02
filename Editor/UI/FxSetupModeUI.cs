@@ -923,7 +923,6 @@ namespace DenEmo.UI
         private static void SetChipState(Button chip, bool on)
         {
             chip.EnableInClassList("dennoko-button-active", on);
-            chip.EnableInClassList("dennoko-chip--on", on);
         }
 
         /// <summary>差し替え先クリップの割当て（検証込み）。ピッカー / D&D の両方から呼ばれる。</summary>

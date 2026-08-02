@@ -33,6 +33,13 @@
     flex-shrink: 0;
 }
 
+/* テーマの .dennoko-scroll に flex-basis: 0 を足す。
+   これがないと ScrollView がコンテンツ実寸を希望サイズとして報告し、
+   コンテンツが長いときに兄弟のヘッダー・ステータスバーが押しつぶされる。 */
+.dennoko-root .dennoko-scroll {
+    flex-basis: 0;
+}
+
 /* ─── ヘッダー ───────────────────────────────────────────── */
 
 .dennoko-root .dennoko-lang-button {
@@ -64,6 +71,8 @@
     padding: 2px 0 4px 0;
 }
 
+/* 選択中のタブには dennoko-button-active を付与する（テーマ側で青枠になる）。
+   タブ固有クラスで背景・枠色を上書きしないこと。 */
 .dennoko-root .dennoko-tab {
     width: 130px;
     height: 22px;
@@ -71,12 +80,6 @@
     padding: 2px 6px;
     margin: 1px 2px;
     color: var(--dennoko-text-secondary);
-}
-
-.dennoko-root .dennoko-tab--active {
-    background-color: var(--dennoko-surface-2);
-    border-color: var(--dennoko-accent);
-    color: var(--dennoko-text-primary);
 }
 
 /* ─── ステータスバー（警告バリアント。success / error はテーマ側に定義済み） ─── */
@@ -215,17 +218,13 @@
     margin-top: 6px;
 }
 
-/* フィルターチップ（ON 状態は dennoko-button-active + dennoko-chip--on を付与） */
+/* フィルターチップ（ON 状態は dennoko-button-active を付与。枠が青くなる） */
 .dennoko-root .dennoko-chip {
     height: 20px;
     font-size: 10px;
     padding: 1px 8px;
     margin: 2px 4px 2px 0;
     color: var(--dennoko-text-secondary);
-}
-
-.dennoko-root .dennoko-chip--on {
-    border-color: var(--dennoko-accent);
 }
 
 /* 複数メッシュ絞り込みのポップアップ */
@@ -257,6 +256,13 @@
     align-items: center;
     flex-wrap: wrap;
     margin-top: 6px;
+}
+
+/* タイムラインのタイトル行（右端のボタンまで伸ばす） */
+.dennoko-root .dennoko-tl-title {
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
 }
 
 .dennoko-root .dennoko-tl-caption {
@@ -508,10 +514,26 @@
     color: var(--dennoko-text-primary);
 }
 
+/* ─── ポップアップ（PopupWindowContent のルート） ─────────── */
+
+.dennoko-root .dennoko-popup-pad {
+    padding: 6px;
+}
+
+/* ラベル + 入力の桁を揃えるポップアップ内フィールド */
+.dennoko-root .dennoko-popup-field .unity-base-field__label {
+    min-width: 90px;
+}
+
 /* ─── シェイプキーリスト ─────────────────────────────────── */
 
 .dennoko-root .dennoko-flex-spacer {
     flex-grow: 1;
+}
+
+/* ShapeKeyList.uxml の CloneTree が返す TemplateContainer（C# で付与） */
+.dennoko-root .dennoko-list-host {
+    flex-shrink: 0;
 }
 
 .dennoko-root .dennoko-list-card {

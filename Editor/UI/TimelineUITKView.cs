@@ -138,7 +138,7 @@ namespace DenEmo.UI
             _titleLabel = new Label();
             _titleLabel.AddToClassList("dennoko-section-title");
             _titleLabel.AddToClassList("dennoko-card-header");
-            _titleLabel.style.flexGrow = 1;
+            _titleLabel.AddToClassList("dennoko-tl-title");
             headerRow.Add(_titleLabel);
             _detachButton = new Button(OnDetachAttach);
             _detachButton.AddToClassList("dennoko-mini-button");
@@ -566,7 +566,6 @@ namespace DenEmo.UI
         private static void SetChip(Button b, bool on)
         {
             b.EnableInClassList("dennoko-button-active", on);
-            b.EnableInClassList("dennoko-chip--on", on);
         }
 
         /// <summary>タブ/ウィンドウの表示切替。非表示時は Tick を止め、表示時に一度再構築する。</summary>

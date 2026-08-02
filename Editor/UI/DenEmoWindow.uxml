@@ -18,7 +18,7 @@
     </ui:VisualElement>
 
     <!-- Pose モード -->
-    <ui:ScrollView name="pose-scroll" style="flex-grow: 1; flex-basis: 0; display: none;">
+    <ui:ScrollView name="pose-scroll" class="dennoko-scroll" style="display: none;">
         <!-- 対象メッシュカード（モード間で共有。C# がホスト間を移動する） -->
         <ui:VisualElement name="pose-target-host">
             <ui:VisualElement name="target-card" class="dennoko-card">
@@ -101,7 +101,7 @@
     </ui:ScrollView>
 
     <!-- Animation モード -->
-    <ui:ScrollView name="anim-scroll" style="flex-grow: 1; flex-basis: 0; display: none;">
+    <ui:ScrollView name="anim-scroll" class="dennoko-scroll" style="display: none;">
         <ui:VisualElement name="anim-target-host" />
 
         <!-- アニメーションクリップ設定 -->
@@ -170,7 +170,7 @@
     </ui:ScrollView>
 
     <!-- FX モード: 対象メッシュ（共有カード） + アバター検出 / 差し替え一覧 / 適用 -->
-    <ui:ScrollView name="fx-scroll" style="flex-grow: 1; flex-basis: 0; display: none;">
+    <ui:ScrollView name="fx-scroll" class="dennoko-scroll" style="display: none;">
         <ui:VisualElement name="fx-target-host" />
 
         <!-- アバター / FX レイヤー検出 -->

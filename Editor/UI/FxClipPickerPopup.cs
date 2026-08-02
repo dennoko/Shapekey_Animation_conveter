@@ -38,10 +38,7 @@ namespace DenEmo.UI
         {
             var root = editorWindow.rootVisualElement;
             DenEmoUiAssets.SetupRoot(root);
-            root.style.paddingLeft   = 6;
-            root.style.paddingRight  = 6;
-            root.style.paddingTop    = 6;
-            root.style.paddingBottom = 6;
+            root.AddToClassList("dennoko-popup-pad");
 
             var tree = DenEmoUiAssets.LoadVisualTree(DenEmoUiAssets.FxClipPickerUxmlGuid);
             if (tree == null) return;

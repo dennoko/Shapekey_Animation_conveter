@@ -73,7 +73,8 @@ namespace DenEmo.UI
             var tree     = DenEmoUiAssets.LoadVisualTree(DenEmoUiAssets.ShapeKeyListUxmlGuid);
             _rowTemplate = DenEmoUiAssets.LoadVisualTree(DenEmoUiAssets.ShapeKeyRowUxmlGuid);
             Root = tree != null ? (VisualElement)tree.CloneTree() : new VisualElement();
-            Root.style.flexShrink = 0;
+            // CloneTree が返す TemplateContainer にはクラスが付かないため C# で付与する
+            Root.AddToClassList("dennoko-list-host");
 
             _title        = Root.Q<Label>("shape-list-title");
             _bulkMenu     = Root.Q<Button>("shape-list-bulk-menu");

@@ -616,7 +616,6 @@ namespace DenEmo
         private static void SetChipState(Button chip, bool on)
         {
             chip.EnableInClassList("dennoko-button-active", on);
-            chip.EnableInClassList("dennoko-chip--on", on);
         }
 
         private string[] BuildMeshFilterOptions(List<SkinnedMeshRenderer> targets)

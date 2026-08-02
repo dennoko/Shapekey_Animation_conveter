@@ -30,7 +30,6 @@ namespace DenEmo.UI
             var normalField = root.Q<ColorField>("normal-color-field");
             normalField.label = DenEmoLoc.T("ui.vertexPreview.normalColor");
             normalField.value = DenEmoWindow.VertexPreviewColor;
-            normalField.labelElement.style.minWidth = 90;
             normalField.RegisterValueChangedCallback(evt =>
             {
                 DenEmoWindow.VertexPreviewColor = evt.newValue;
@@ -40,7 +39,6 @@ namespace DenEmo.UI
             var selectedField = root.Q<ColorField>("selected-color-field");
             selectedField.label = DenEmoLoc.T("ui.vertexPreview.selectedColor");
             selectedField.value = DenEmoWindow.VertexPreviewSelectedColor;
-            selectedField.labelElement.style.minWidth = 90;
             selectedField.RegisterValueChangedCallback(evt =>
             {
                 DenEmoWindow.VertexPreviewSelectedColor = evt.newValue;
@@ -50,7 +48,6 @@ namespace DenEmo.UI
             var sizeSlider = root.Q<Slider>("size-slider");
             sizeSlider.label = DenEmoLoc.T("ui.vertexPreview.size");
             sizeSlider.value = DenEmoWindow.VertexPreviewSizeMultiplier;
-            sizeSlider.labelElement.style.minWidth = 90;
             sizeSlider.RegisterValueChangedCallback(evt =>
             {
                 DenEmoWindow.VertexPreviewSizeMultiplier = evt.newValue;
