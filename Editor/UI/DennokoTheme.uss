@@ -173,6 +173,29 @@
 
 /* ─── ④ トグル (Toggle) のチェックボックスリセット ──────── */
 
+/* 入力コンテナ自体は③でリセット済みだが、ホバー／フォーカス時のフィールド装飾は
+   より詳細度が高いため個別に打ち消す (チェックボックス＋ラベル全体が箱で囲まれるのを防ぐ)。 */
+.dennoko-root .unity-toggle:hover .unity-base-field__input,
+.dennoko-root .unity-toggle:focus .unity-base-field__input,
+.dennoko-root .unity-toggle .unity-base-field__input:focus {
+    background-color: transparent;
+    border-color: transparent;
+    border-width: 0;
+    padding: 0;
+}
+
+/* Toggle.text のラベルは .unity-base-field__input の内側に生成される Label のため、
+   ③のフィールド装飾 (背景・枠線・角丸・パディング) を受けてしまう。
+   ⚠ このリセットがないと、チェックボックスのラベル文字が箱で囲まれて表示される。 */
+.dennoko-root .unity-toggle .unity-toggle__text {
+    background-color: transparent;
+    border-color: transparent;
+    border-width: 0;
+    border-radius: 0;
+    padding: 0;
+    margin-left: 4px;
+}
+
 .dennoko-root .unity-toggle__checkmark {
     background-color: var(--dennoko-surface-1);
     border-color: var(--dennoko-outline);

@@ -244,6 +244,11 @@
     margin: 3px 8px;
 }
 
+/* 上書き保存トグルで制御される展開グループ */
+.dennoko-root #pose-overwrite-group {
+    margin-left: 16px;
+}
+
 /* ─── Timeline(Exp): UI Toolkit 版タイムライン（検証） ─────── */
 
 .dennoko-root .dennoko-tl-settings,
