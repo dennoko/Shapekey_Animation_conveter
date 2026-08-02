@@ -43,6 +43,11 @@ This section lets you pull shape key values or checkbox settings from an existin
 **Clip field**
 Reference any `.anim` file here to use it as a source.
 
+**Also load non-blendshape animation** (default: on)
+Also imports non-blendshape animation data - object toggles, bone transforms, material values and so on - and writes it back out when you save. If your default expression carries such data, a blendshape-only expression leaves it uncancelled and the face can break. Leaving this on avoids that.
+
+> Imported data is NOT reflected in the DenEmo preview (the scene view). It is included in the saved `.anim`.
+
 **Load Animation**
 Reads the shape key values at 0 s from the selected clip and applies them to all sliders. The sliders update immediately so you can continue editing from that state.
 
@@ -153,6 +158,11 @@ When enabled, a target clip field appears below. Saving writes directly to that 
 
 **Auto Backup on Overwrite**
 When overwrite is enabled, this option copies the current file to a `_backups/` subfolder before overwriting it. Keep this on to avoid losing previous versions.
+
+**Keep non-blendshape animation** (default: on)
+Keeps non-blendshape data already present in the overwrite target - object toggles, bone transforms, material values and so on - instead of erasing it. When off, saving produces a blendshape-only animation.
+
+> This data is NOT reflected in the DenEmo preview (the scene view). It is included in the saved `.anim`.
 
 **Save Animation**
 Exports all checked shape keys with their current slider values. If Overwrite Save is enabled and a target is set, it overwrites that file. Otherwise it creates a new file in the Save To folder.

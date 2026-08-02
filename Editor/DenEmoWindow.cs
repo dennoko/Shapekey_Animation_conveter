@@ -43,6 +43,10 @@ namespace DenEmo
         private bool symmetryMode       = false;
         private bool autoBackup         = true;
         private bool overwriteSaveEnabled = false;
+        // 上書き保存時に書き込み先の blendShape 以外のカーブを残す
+        private bool preserveExtraCurves = true;
+        // アニメーション参照の読み込み時に blendShape 以外のカーブも取り込む
+        private bool importExtraCurves   = true;
         private bool _animSaveAsNew       = false;
         private bool vertexPickMode       = false;
         private bool vertexFilterActive   = false;
@@ -68,6 +72,9 @@ namespace DenEmo
 
         private AnimationClip loadedClip          = null;
         private AnimationClip overwriteTargetClip = null;
+
+        // 「アニメーションを読み込む」で取り込んだ blendShape 以外のカーブ。保存時に書き出す。
+        private DenEmo.Core.ExtraCurveSet _importedExtraCurves = null;
 
         private HashSet<string> collapsedGroups = new HashSet<string>();
 
@@ -135,6 +142,8 @@ namespace DenEmo
             symmetryMode         = DenEmoProjectPrefs.GetBool("DenEmo_SymmetryMode",      false);
             autoBackup           = DenEmoProjectPrefs.GetBool("DenEmo_AutoBackup",        true);
             overwriteSaveEnabled = DenEmoProjectPrefs.GetBool("DenEmo_OverwriteSaveEnabled", false);
+            preserveExtraCurves  = DenEmoProjectPrefs.GetBool("DenEmo_PreserveExtraCurves", true);
+            importExtraCurves    = DenEmoProjectPrefs.GetBool("DenEmo_ImportExtraCurves",   true);
             _animSaveAsNew       = DenEmoProjectPrefs.GetBool("DenEmo_AnimSaveAsNew",     false);
             _meshFilterIndex     = DenEmoProjectPrefs.GetInt("DenEmo_MeshFilter", -1);
             VertexPreviewColor        = ParseColor(DenEmoProjectPrefs.GetString("DenEmo_VertexPreviewColor",         ""), new Color(0.24f, 0.72f, 1.0f, 0.95f));
@@ -254,6 +263,8 @@ namespace DenEmo
             DenEmoProjectPrefs.SetBool("DenEmo_SymmetryMode",         symmetryMode);
             DenEmoProjectPrefs.SetBool("DenEmo_AutoBackup",           autoBackup);
             DenEmoProjectPrefs.SetBool("DenEmo_OverwriteSaveEnabled", overwriteSaveEnabled);
+            DenEmoProjectPrefs.SetBool("DenEmo_PreserveExtraCurves",  preserveExtraCurves);
+            DenEmoProjectPrefs.SetBool("DenEmo_ImportExtraCurves",    importExtraCurves);
             DenEmoProjectPrefs.SetBool("DenEmo_AnimSaveAsNew",        _animSaveAsNew);
             DenEmoProjectPrefs.SetInt("DenEmo_MeshFilter",            _meshFilterIndex);
             DenEmoProjectPrefs.SetInt("DenEmo_Mode", (int)_currentMode);

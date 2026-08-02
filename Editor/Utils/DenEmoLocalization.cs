@@ -60,7 +60,10 @@ public static class DenEmoLoc
         ["ui.animSource.clip.label"] = "アニメーションクリップ",
         ["ui.animSource.clip.tip"] = "操作対象の AnimationClip を指定します。",
         ["ui.animSource.loadAnim.button"] = "アニメーションを読み込む",
+        ["ui.animSource.loadExtra"] = "シェイプキー以外のアニメーションも読み込む",
+        ["ui.animSource.loadExtra.tip"] = "オブジェクトの表示切替・ボーン・マテリアル値など、シェイプキー以外のアニメーション情報も一緒に取り込み、保存時に書き出します。デフォルト表情がこれらを含む場合、表情の崩れを防げます。\n※取り込んだ情報は DenEmo のプレビュー（シーン上の見た目）には反映されません。保存した .anim には含まれます。",
         ["ui.animSource.alignKeys.button"] = "アニメーションファイルのキーを揃える",
+        ["status.extraImported"] = "（シェイプキー以外のアニメーション {0} 件を取り込みました）",
 
         // Apply animation to mesh (tooltip kept for reuse)
         ["ui.applyAnim.label"] = "アニメーションを適用",
@@ -128,6 +131,8 @@ public static class DenEmoLoc
         ["ui.footer.browse.title"]   = "フォルダを選択",
         ["ui.footer.autoBackup"]     = "上書き時に自動バックアップ",
         ["ui.footer.autoBackup.tip"] = "上書き保存前に既存ファイルを _backups/ フォルダに複製します。",
+        ["ui.footer.preserveExtra"]     = "シェイプキー以外のアニメーションを維持",
+        ["ui.footer.preserveExtra.tip"] = "上書き先のアニメーションが持つ、シェイプキー以外の情報（オブジェクトの表示切替・ボーン・マテリアル値など）を消さずに残します。オフにすると、保存時にシェイプキーのみのアニメーションになります。\n※これらの情報は DenEmo のプレビュー（シーン上の見た目）には反映されません。保存した .anim には含まれます。",
         ["ui.animMode.saveAsNew"]     = "新規クリップとして保存",
         ["ui.animMode.saveAsNew.tip"] = "元クリップのフォルダをデフォルトパスとしてファイルダイアログを開き、新規クリップとして保存します。",
         ["ui.animMode.save.button"]   = "アニメーションを保存",
@@ -367,7 +372,10 @@ public static class DenEmoLoc
         ["ui.animSource.clip.label"] = "Animation Clip",
         ["ui.animSource.clip.tip"] = "Specify the AnimationClip to work with.",
         ["ui.animSource.loadAnim.button"] = "Load Animation",
+        ["ui.animSource.loadExtra"] = "Also load non-blendshape animation",
+        ["ui.animSource.loadExtra.tip"] = "Also imports non-blendshape animation data (object toggles, bones, material values, etc.) and writes it out when saving. Prevents expressions from breaking when the default expression contains such data.\nNote: imported data is NOT reflected in the DenEmo preview (the scene view). It is included in the saved .anim.",
         ["ui.animSource.alignKeys.button"] = "Align Animation File Keys",
+        ["status.extraImported"] = " (imported {0} non-blendshape curve(s))",
 
         // Apply animation to mesh (tooltip kept for reuse)
         ["ui.applyAnim.label"] = "Apply Animation",
@@ -435,6 +443,8 @@ public static class DenEmoLoc
         ["ui.footer.browse.title"]   = "Select Folder",
         ["ui.footer.autoBackup"]     = "Auto backup on overwrite",
         ["ui.footer.autoBackup.tip"] = "Copies the existing .anim file to _backups/ before overwriting.",
+        ["ui.footer.preserveExtra"]     = "Keep non-blendshape animation",
+        ["ui.footer.preserveExtra.tip"] = "Keeps non-blendshape data (object toggles, bones, material values, etc.) already present in the overwrite target instead of erasing it. When off, saving produces a blendshape-only animation.\nNote: this data is NOT reflected in the DenEmo preview (the scene view). It is included in the saved .anim.",
         ["ui.animMode.saveAsNew"]     = "Save as new clip",
         ["ui.animMode.saveAsNew.tip"] = "Opens a file dialog to save as a new animation clip. The original clip's folder is used as the default path.",
         ["ui.animMode.save.button"]   = "Save Animation",

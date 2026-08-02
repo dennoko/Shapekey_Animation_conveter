@@ -8,7 +8,11 @@ namespace DenEmo.Core
 {
     public static class AnimationExporter
     {
-        public static string SaveAnimationClip(ShapeKeyModel model, string saveFolder, out string generatedPath, bool autoBackup = false)
+        /// <param name="preserveExtraCurves">上書き時、書き込み先の blendShape 以外のカーブを消さずに残す。</param>
+        /// <param name="importedExtras">アニメーション参照から取り込んだ blendShape 以外のカーブ（無ければ null）。</param>
+        public static string SaveAnimationClip(ShapeKeyModel model, string saveFolder, out string generatedPath,
+                                               bool autoBackup = false, bool preserveExtraCurves = true,
+                                               ExtraCurveSet importedExtras = null)
         {
             generatedPath = null;
             if (model.TargetSkinnedMesh == null) return DenEmoLoc.T("dlg.apply.noTarget");
@@ -42,7 +46,8 @@ namespace DenEmo.Core
                     AssetDatabase.CopyAsset(path, backupPath);
                 }
                 clip = existingClip;
-                clip.ClearCurves();
+                if (preserveExtraCurves) ExtraCurveSet.ClearBlendShapeCurves(clip);
+                else                     clip.ClearCurves();
                 clip.frameRate = 60;
                 isOverwrite = true;
             }
@@ -53,6 +58,7 @@ namespace DenEmo.Core
             }
 
             WriteItemsToClip(model, clip);
+            if (importedExtras != null) importedExtras.WriteTo(clip, overwriteExisting: false);
 
             if (isOverwrite)
                 EditorUtility.SetDirty(clip);
@@ -72,7 +78,11 @@ namespace DenEmo.Core
             return null;
         }
 
-        public static string SaveAnimationClipToPath(ShapeKeyModel model, string path, out string generatedPath, bool autoBackup = false)
+        /// <param name="preserveExtraCurves">上書き時、書き込み先の blendShape 以外のカーブを消さずに残す。</param>
+        /// <param name="importedExtras">アニメーション参照から取り込んだ blendShape 以外のカーブ（無ければ null）。</param>
+        public static string SaveAnimationClipToPath(ShapeKeyModel model, string path, out string generatedPath,
+                                                     bool autoBackup = false, bool preserveExtraCurves = true,
+                                                     ExtraCurveSet importedExtras = null)
         {
             generatedPath = null;
             if (model.TargetSkinnedMesh == null) return DenEmoLoc.T("dlg.apply.noTarget");
@@ -96,7 +106,8 @@ namespace DenEmo.Core
                     AssetDatabase.CopyAsset(path, backupPath);
                 }
                 clip = existingClip;
-                clip.ClearCurves();
+                if (preserveExtraCurves) ExtraCurveSet.ClearBlendShapeCurves(clip);
+                else                     clip.ClearCurves();
                 clip.frameRate = 60;
             }
             else
@@ -105,6 +116,7 @@ namespace DenEmo.Core
             }
 
             WriteItemsToClip(model, clip);
+            if (importedExtras != null) importedExtras.WriteTo(clip, overwriteExisting: false);
 
             if (existingClip != null)
             {

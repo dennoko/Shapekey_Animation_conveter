@@ -46,6 +46,7 @@
                 <ui:Label name="pose-source-label" class="dennoko-text-tertiary dennoko-field-label" />
                 <uie:ObjectField name="pose-source-field" class="dennoko-clip-field" />
             </ui:VisualElement>
+            <ui:Toggle name="pose-source-extra-toggle" class="dennoko-save-toggle" />
             <ui:Button name="pose-source-apply" class="dennoko-button-primary dennoko-action-button" />
             <ui:Button name="pose-source-align" class="dennoko-button-secondary dennoko-action-button" />
         </ui:VisualElement>
@@ -92,6 +93,7 @@
                     <uie:ObjectField name="pose-overwrite-field" class="dennoko-clip-field" />
                 </ui:VisualElement>
                 <ui:Toggle name="pose-backup-toggle" class="dennoko-save-toggle" />
+                <ui:Toggle name="pose-preserve-extra-toggle" class="dennoko-save-toggle" />
             </ui:VisualElement>
             <ui:VisualElement class="dennoko-separator" />
             <ui:Button name="pose-save-button" class="dennoko-button-primary dennoko-action-button" />

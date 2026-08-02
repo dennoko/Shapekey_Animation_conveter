@@ -34,6 +34,7 @@ namespace DenEmo
         private Label         _poseSourceTitle;
         private Label         _poseSourceLabel;
         private ObjectField   _poseSourceField;
+        private Toggle        _poseSourceExtraToggle;
         private Button        _poseSourceApply;
         private Button        _poseSourceAlign;
 
@@ -66,6 +67,7 @@ namespace DenEmo
         private Label         _poseOverwriteLabel;
         private ObjectField   _poseOverwriteField;
         private Toggle        _poseBackupToggle;
+        private Toggle        _posePreserveExtraToggle;
         private Button        _poseSaveButton;
 
         private VisualElement _animSaveCard;
@@ -99,26 +101,47 @@ namespace DenEmo
             _targetRefresh.clicked   += RefreshListAndCache;
 
             // アニメーション参照（Pose）
-            _poseSourceCard  = root.Q<VisualElement>("pose-source-card");
-            _poseSourceTitle = root.Q<Label>("pose-source-title");
-            _poseSourceLabel = root.Q<Label>("pose-source-label");
-            _poseSourceField = root.Q<ObjectField>("pose-source-field");
-            _poseSourceApply = root.Q<Button>("pose-source-apply");
-            _poseSourceAlign = root.Q<Button>("pose-source-align");
+            _poseSourceCard        = root.Q<VisualElement>("pose-source-card");
+            _poseSourceTitle       = root.Q<Label>("pose-source-title");
+            _poseSourceLabel       = root.Q<Label>("pose-source-label");
+            _poseSourceField       = root.Q<ObjectField>("pose-source-field");
+            _poseSourceExtraToggle = root.Q<Toggle>("pose-source-extra-toggle");
+            _poseSourceApply       = root.Q<Button>("pose-source-apply");
+            _poseSourceAlign       = root.Q<Button>("pose-source-align");
 
             _poseSourceField.objectType        = typeof(AnimationClip);
             _poseSourceField.allowSceneObjects = false;
             _poseSourceField.RegisterValueChangedCallback(evt =>
             {
                 loadedClip = evt.newValue as AnimationClip;
+                // 参照クリップが変わったら、前のクリップから取り込んだカーブは破棄する
+                _importedExtraCurves = null;
                 UpdatePoseSourceCard();
             });
+
+            _poseSourceExtraToggle.SetValueWithoutNotify(importExtraCurves);
+            _poseSourceExtraToggle.RegisterValueChangedCallback(evt =>
+            {
+                importExtraCurves = evt.newValue;
+                if (!importExtraCurves) _importedExtraCurves = null;
+            });
+
             _poseSourceApply.clicked += () =>
             {
                 if (loadedClip == null) return;
                 SetStatus(DenEmoLoc.T("status.applying"), 0, 0);
+
+                _importedExtraCurves = importExtraCurves ? ExtraCurveSet.Capture(loadedClip) : null;
+                int extraCount = _importedExtraCurves != null ? _importedExtraCurves.Count : 0;
+
                 string res = AnimationExporter.ApplyAnimationToMesh(loadedClip, _model);
-                if (res == "SUCCESS") { SaveBlendValuesPrefs(); SetStatus(DenEmoLoc.T("dlg.apply.done.msg"), 1); }
+                if (res == "SUCCESS")
+                {
+                    SaveBlendValuesPrefs();
+                    string msg = DenEmoLoc.T("dlg.apply.done.msg");
+                    if (extraCount > 0) msg += DenEmoLoc.Tf("status.extraImported", extraCount);
+                    SetStatus(msg, 1);
+                }
                 else SetStatus(res, 2);
             };
             _poseSourceAlign.clicked += () =>
@@ -210,8 +233,9 @@ namespace DenEmo
             _poseOverwriteGroup  = root.Q<VisualElement>("pose-overwrite-group");
             _poseOverwriteLabel  = root.Q<Label>("pose-overwrite-label");
             _poseOverwriteField  = root.Q<ObjectField>("pose-overwrite-field");
-            _poseBackupToggle    = root.Q<Toggle>("pose-backup-toggle");
-            _poseSaveButton      = root.Q<Button>("pose-save-button");
+            _poseBackupToggle        = root.Q<Toggle>("pose-backup-toggle");
+            _posePreserveExtraToggle = root.Q<Toggle>("pose-preserve-extra-toggle");
+            _poseSaveButton          = root.Q<Button>("pose-save-button");
 
             _poseSaveFolderField.SetValueWithoutNotify(saveFolder);
             _poseSaveFolderField.RegisterValueChangedCallback(evt => saveFolder = evt.newValue);
@@ -242,6 +266,9 @@ namespace DenEmo
 
             _poseBackupToggle.SetValueWithoutNotify(autoBackup);
             _poseBackupToggle.RegisterValueChangedCallback(evt => autoBackup = evt.newValue);
+
+            _posePreserveExtraToggle.SetValueWithoutNotify(preserveExtraCurves);
+            _posePreserveExtraToggle.RegisterValueChangedCallback(evt => preserveExtraCurves = evt.newValue);
 
             _poseSaveButton.clicked += SavePoseAnimation;
 
@@ -280,6 +307,8 @@ namespace DenEmo
             _poseSourceTitle.text     = DenEmoLoc.T("ui.section.animSource");
             _poseSourceLabel.text     = DenEmoLoc.T("ui.animSource.clip.label");
             _poseSourceField.tooltip  = DenEmoLoc.T("ui.animSource.clip.tip");
+            _poseSourceExtraToggle.text    = DenEmoLoc.T("ui.animSource.loadExtra");
+            _poseSourceExtraToggle.tooltip = DenEmoLoc.T("ui.animSource.loadExtra.tip");
             _poseSourceApply.text     = DenEmoLoc.T("ui.animSource.loadAnim.button");
             _poseSourceApply.tooltip  = DenEmoLoc.T("ui.applyAnim.tip");
             _poseSourceAlign.text     = DenEmoLoc.T("ui.animSource.alignKeys.button");
@@ -305,6 +334,8 @@ namespace DenEmo
             _poseOverwriteLabel.text      = DenEmoLoc.T("ui.footer.overwriteTarget");
             _poseBackupToggle.text        = DenEmoLoc.T("ui.footer.autoBackup");
             _poseBackupToggle.tooltip     = DenEmoLoc.T("ui.footer.autoBackup.tip");
+            _posePreserveExtraToggle.text    = DenEmoLoc.T("ui.footer.preserveExtra");
+            _posePreserveExtraToggle.tooltip = DenEmoLoc.T("ui.footer.preserveExtra.tip");
             _poseSaveButton.text          = DenEmoLoc.T("ui.footer.saveAnim");
 
             _animSaveTitle.text          = DenEmoLoc.T("ui.section.saveAnim");
@@ -612,14 +643,16 @@ namespace DenEmo
             {
                 string clipPath = AssetDatabase.GetAssetPath(overwriteTargetClip);
                 SetStatus(DenEmoLoc.T("status.saving"), 0, 0);
-                var err = AnimationExporter.SaveAnimationClipToPath(_model, clipPath, out string path, autoBackup);
+                var err = AnimationExporter.SaveAnimationClipToPath(_model, clipPath, out string path, autoBackup,
+                                                                    preserveExtraCurves, _importedExtraCurves);
                 if (err != null) SetStatus(err, 3);
                 else SetStatus(DenEmoLoc.Tf("dlg.save.done.msg", path), 1);
             }
             else
             {
                 SetStatus(DenEmoLoc.T("status.saving"), 0, 0);
-                var err = AnimationExporter.SaveAnimationClip(_model, saveFolder, out string path, autoBackup);
+                var err = AnimationExporter.SaveAnimationClip(_model, saveFolder, out string path, autoBackup,
+                                                              preserveExtraCurves, _importedExtraCurves);
                 if (err != null) SetStatus(err, 3);
                 else SetStatus(DenEmoLoc.Tf("dlg.save.done.msg", path), 1);
             }
