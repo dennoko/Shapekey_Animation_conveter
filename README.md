@@ -14,7 +14,7 @@ DenEmoは、Unity上でSkinnedMeshRendererのシェイプキー（ブレンド�
 - お気に入り・グループ折りたたみ
 - スナップショット保存/復元
 - Undo/Redo対応
-- VRChat VRCAvatarDescriptorのリップシンクシェイプを自動除外
+- VRChat VRCAvatarDescriptorのまばたき・リップシンクシェイプを自動除外
 - NDMFプレビューメッシュに対応した頂点ガイド表示
 - 日本語/英語UI切り替え
 
@@ -91,7 +91,7 @@ Core/
   AnimationExporter.cs        .animファイルのエクスポート
   AnimationPreviewController.cs ブレンドシェイププレビュー・キーフレーム記録
   SymmetryParser.cs           L/R対称シェイプキーの解析
-  LipSyncExclusionRule.cs     VRChatリップシンクシェイプ自動除外
+  VrcBindingExclusionRule.cs  VRCAvatarDescriptorバインドシェイプ（まばたき・リップシンク）自動除外
 UI/
   AnimationModeUI.cs          マルチフレームモードのオーケストレーター
   TimelineUITKView.cs         タイムラインUI（UI Toolkit / Painter2D。埋め込み・別窓兼用）
@@ -129,7 +129,7 @@ DenEmo is a Unity Editor extension for efficiently editing and animating blendsh
 - Favorites, group collapse/expand
 - Snapshot save/restore
 - Undo/Redo support
-- Auto-exclusion of VRChat VRCAvatarDescriptor lipsync shapes
+- Auto-exclusion of VRChat VRCAvatarDescriptor eyelids/blink and lipsync shapes
 - NDMF preview mesh support for vertex guide rendering
 - Switchable Japanese/English UI
 

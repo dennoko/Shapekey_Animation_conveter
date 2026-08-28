@@ -7,7 +7,7 @@ namespace DenEmo.Core
 {
     /// <summary>
     /// VRChat SDK の型へ直接依存せず、リフレクションのみで VRCAvatarDescriptor を扱うヘルパ。
-    /// SDK 未導入プロジェクトでもコンパイル可能に保つ（LipSyncExclusionRule と同方針）。
+    /// SDK 未導入プロジェクトでもコンパイル可能に保つ（VrcBindingExclusionRule と同方針）。
     /// baseAnimationLayers は struct 配列のため、要素の書き換えは box 化 → フィールドセット →
     /// Array.SetValue → 配列ごとフィールドへ書き戻し、の手順が必要。
     /// </summary>

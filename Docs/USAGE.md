@@ -134,7 +134,7 @@ Shape keys are automatically grouped by name prefix (e.g., all `mouth_*` keys fo
 
 Clicking the `✓▼` button in the toolbar opens a menu to perform bulk operations on the shape key checkboxes (inclusion toggles).
 
-* **Check All Visible**: Checks all shape keys currently displayed in the list (matching search and filters). VRChat system shape keys (prefixed with `vrc.`) and LipSync shape keys are excluded.
+* **Check All Visible**: Checks all shape keys currently displayed in the list (matching search and filters). Shape keys bound to the VRCAvatarDescriptor eyelids/LipSync are excluded.
 * **Uncheck All Visible**: Unchecks all shape keys currently displayed in the list.
 * **Uncheck Unchanged (Value is 0)**: Unchecks all shape keys that are unchanged in the animation, regardless of the current search or filter visibility.
   * **Single Frame Mode (Pose)**: Unchecks shape keys whose current slider value is `0`.

@@ -54,7 +54,7 @@ public static class DenEmoLoc
         ["ui.align.base.label"] = "ベースアニメーション",
         ["ui.align.base.tip"] = "保存対象のシェイプを選別するために参照するAnimationClipです。『適用』を押すと、このクリップに含まれるブレンドシェイプのみを保存対象に切り替えます。",
         ["ui.align.apply.button"] = "適用",
-        ["ui.align.apply.tip"] = "ベースアニメーションに含まれるブレンドシェイプのみ保存対象（チェック）にします。vrc.* 系は除外されます。",
+        ["ui.align.apply.tip"] = "ベースアニメーションに含まれるブレンドシェイプのみ保存対象（チェック）にします。VRCAvatarDescriptor に登録されたまばたき・リップシンク用シェイプは除外されます。",
 
         // Animation source (unified clip field + actions)
         ["ui.animSource.clip.label"] = "アニメーションクリップ",
@@ -366,7 +366,7 @@ public static class DenEmoLoc
         ["ui.align.base.label"] = "Base Animation",
         ["ui.align.base.tip"] = "AnimationClip used to select which shapes will be saved. Clicking 'Apply' toggles save targets to only those contained in this clip.",
         ["ui.align.apply.button"] = "Apply",
-        ["ui.align.apply.tip"] = "Set save targets (checks) to shapes contained in the base animation. vrc.* shapes are excluded.",
+        ["ui.align.apply.tip"] = "Set save targets (checks) to shapes contained in the base animation. Shapes bound to the VRCAvatarDescriptor eyelids/lip sync are excluded.",
 
         // Animation source (unified clip field + actions)
         ["ui.animSource.clip.label"] = "Animation Clip",

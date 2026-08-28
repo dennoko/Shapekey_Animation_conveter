@@ -23,7 +23,7 @@
 ### Core (コアロジック)
 - `AnimationExporter.cs`: `AnimationClip` の生成、保存、およびメッシュへの適用ロジックを担当。
 - `AnimationPreviewController.cs`: アニメーションのプレビュー再生およびキーフレームの記録・削除を制御。
-- `LipSyncExclusionRule.cs`: VRChat 用の LipSync シェイプキーを自動的に除外するなどのフィルタリングルールを定義。
+- `VrcBindingExclusionRule.cs`: VRCAvatarDescriptor に登録されたまばたき・リップシンク用のシェイプキーを自動的に除外するフィルタリングルールを定義。
 - `SymmetryParser.cs`: シェイプキー名の接頭辞・接尾辞（L/R など）を解析し、左右対称なペアを特定。
 
 ### Models (データモデル)

@@ -95,7 +95,6 @@ namespace DenEmo.Models
                     float  value = smr.GetBlendShapeWeight(i);
                     var item = new ShapeKeyItem(i, name, value)
                     {
-                        IsVrcShape = IsVrcShapeName(name),
                         OwnerSmr   = smr,
                         SmrPath    = smrPath,
                     };
@@ -389,13 +388,14 @@ namespace DenEmo.Models
         }
 
         // --- Helpers ---
-        private static bool IsVrcShapeName(string name)
+        /// <summary>グループ名の見た目を整えるため VRC 系プレフィックスだけを取り除く（除外判定には使わない）。</summary>
+        private static string StripVrcPrefix(string name)
         {
-            if (string.IsNullOrEmpty(name)) return false;
+            if (string.IsNullOrEmpty(name)) return name;
             name = name.Trim();
-            if (name.StartsWith("vrc.",  StringComparison.OrdinalIgnoreCase)) return true;
-            if (name.StartsWith(".vrc",  StringComparison.OrdinalIgnoreCase)) return true;
-            return false;
+            if (name.StartsWith("vrc.", StringComparison.OrdinalIgnoreCase))       name = name.Substring(4);
+            else if (name.StartsWith(".vrc", StringComparison.OrdinalIgnoreCase))  name = name.Substring(4);
+            return name.TrimStart('.', '_');
         }
 
         private static readonly char[] GroupKeyDelimiters = { ' ', '_', '-', '/', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -406,8 +406,10 @@ namespace DenEmo.Models
             if (string.IsNullOrEmpty(name)) return "Other";
             name = name.Trim();
 
-            // VRC、LipSync系は除外
-            if (IsVrcShapeName(name)) return "VRC";
+            // vrc.* は除外せず、プレフィックスを外した実体名でグループ化する。
+            // （FaceTracking 対応アバターでは編集対象の表情シェイプにも vrc. が付くため）
+            name = StripVrcPrefix(name);
+            if (string.IsNullOrEmpty(name)) return "VRC";
 
             int idx = name.IndexOfAny(GroupKeyDelimiters);
             string token;

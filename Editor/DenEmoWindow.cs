@@ -777,7 +777,7 @@ namespace DenEmo
             ClampMeshFilterIndex();
             _model.SetActiveMeshes(GetActiveMeshes());
             _model.RefreshList(searchText, showOnlyIncluded);
-            LipSyncExclusionRule.ApplyExclusion(_model.TargetSkinnedMesh, _model.Items);
+            VrcBindingExclusionRule.ApplyExclusion(_model.TargetSkinnedMesh, _model.Items);
             LoadFavoritesPrefs();
             _model.BuildGroups();
             LoadIncludeFlagsPrefs();
