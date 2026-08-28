@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -11,21 +13,15 @@ namespace Dennoko
     /// version.json の形式:
     ///   { "version": "1.2.0", "url": "https://.../releases", "message": "" }
     ///
-    /// 使い方（owner / repo は各プロジェクトに「設定されているリモートリポジトリ」に合わせる。
-    /// ここではハードコードせず呼び出し側から渡す）:
-    ///   DennokoVersionChecker.CheckAsync(
-    ///       "your-owner", "your-repo", "main", "version.json",
-    ///       YourVersion.Current, OnResult);
-    ///
-    /// ローカライズ非依存: 文言は返さず「状態(State)」だけ返す。表示側の i18n で文言化する。
-    /// 共通仕様: dennokoworks_color_schema/forUnity/topbar_version_template.md
+    /// owner / repo は各プロジェクトの「設定されているリモートリポジトリ」を
+    /// 呼び出し側から渡す（ハードコードしない）。文言は返さず State だけ返す。
     /// </summary>
     public static class DennokoVersionChecker
     {
-        /// <summary>true にすると取得URL・HTTPステータス・レスポンス・比較結果を Console に出力する。</summary>
-        public static bool VerboseLog = false;
-
         public enum State { Checking, UpToDate, UpdateAvailable, Error }
+
+        /// <summary>応答が無い場合に待ち続けないための上限（秒）。</summary>
+        private const int RequestTimeoutSeconds = 10;
 
         public struct Result
         {
@@ -47,6 +43,9 @@ namespace Dennoko
         /// <summary>
         /// version.json を非同期取得して結果を onResult に渡す。例外は投げず、失敗時は
         /// State.Error を返す。onResult は Unity のメインスレッド上で呼ばれる。
+        ///
+        /// 指定 branch で取得できなかった場合は "main" にフォールバックして再取得する
+        /// (デフォルトブランチが master / main のどちらでも動くように)。
         /// </summary>
         public static void CheckAsync(
             string owner, string repo, string branch, string filePath,
@@ -54,36 +53,76 @@ namespace Dennoko
         {
             if (onResult == null) return;
 
+            // 候補ブランチ: 指定ブランチ → "main" (重複は除外)
+            var branches = new List<string>();
+            if (!string.IsNullOrEmpty(branch)) branches.Add(branch);
+            if (!branches.Contains("main", StringComparer.OrdinalIgnoreCase)) branches.Add("main");
+
+            TryBranch(owner, repo, branches, 0, filePath, localVersion, onResult);
+        }
+
+        /// <summary>候補ブランチを index から順に試す。エラーなら次の候補へフォールバックする。</summary>
+        private static void TryBranch(
+            string owner, string repo, List<string> branches, int index,
+            string filePath, string localVersion, Action<Result> onResult)
+        {
+            if (index >= branches.Count)
+            {
+                onResult(Error(localVersion));
+                return;
+            }
+
             UnityWebRequest req;
-            string requestUrl;
             try
             {
-                requestUrl = $"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{filePath}";
-                req = UnityWebRequest.Get(requestUrl);
+                // api.github.com ではなく raw を使う。未認証の api.github.com は
+                // IP あたり 60 req/hour と枠が狭く、レート制限に当たりやすいため。
+                var url = $"https://raw.githubusercontent.com/{owner}/{repo}/{branches[index]}/{filePath}";
+                req = UnityWebRequest.Get(url);
+                // UnityWebRequest 既定の User-Agent は 403 の対象になり得るので明示する
+                req.SetRequestHeader("User-Agent", $"{repo}-VersionChecker");
+                req.timeout = RequestTimeoutSeconds;
             }
             catch (Exception e)
             {
+                // URL 組み立て自体の失敗はブランチを変えても直らないため即エラー
                 Debug.LogWarning($"[DennokoVersionChecker] request build failed: {e.Message}");
                 onResult(Error(localVersion));
                 return;
             }
 
-            Log($"GET {requestUrl}  (local={localVersion})");
             var op = req.SendWebRequest();
             op.completed += _ =>
             {
+                Result result;
+                long httpCode = 0;
                 try
                 {
-                    onResult(BuildResult(req, localVersion));
+                    result = BuildResult(req, localVersion);
                 }
                 catch (Exception e)
                 {
                     Debug.LogWarning($"[DennokoVersionChecker] callback failed: {e.Message}");
-                    onResult(Error(localVersion));
+                    result = Error(localVersion);
                 }
                 finally
                 {
+                    httpCode = req.responseCode;
                     req.Dispose();
+                }
+
+                // 403 / 429 はブランチを変えても解消せず、リクエストを増やして
+                // レート制限を悪化させるだけなのでフォールバックしない
+                bool rateLimited = httpCode == 403 || httpCode == 429;
+
+                if (result.State == State.Error && !rateLimited && index + 1 < branches.Count)
+                {
+                    // 次の候補ブランチへフォールバック
+                    TryBranch(owner, repo, branches, index + 1, filePath, localVersion, onResult);
+                }
+                else
+                {
+                    onResult(result);
                 }
             };
         }
@@ -93,39 +132,38 @@ namespace Dennoko
             string url = req != null ? req.url : "(null)";
 #if UNITY_2020_2_OR_NEWER
             bool hasError = req.result != UnityWebRequest.Result.Success;
-            Log($"completed: result={req.result} httpCode={req.responseCode} error={req.error}");
 #else
             bool hasError = req.isNetworkError || req.isHttpError;
-            Log($"completed: httpCode={req.responseCode} netErr={req.isNetworkError} httpErr={req.isHttpError} error={req.error}");
 #endif
+            // 失敗は必ず一度警告する。URL・httpCode・error・body が「最新情報を取得できません」の
+            // 切り分け材料になる（owner/repo/branch・push 有無・回線・レート制限）。
             if (hasError)
             {
-                // 取得失敗は（VerboseLog に関わらず）常に一度だけ警告する。
-                // owner/repo/branch/URL・version.json の push 有無・ネットワークを確認する材料。
-                Warn($"取得失敗: url={url} httpCode={req.responseCode} error={req.error}");
+                // 403 / 429 は本文に理由（レート制限か否か）が入るので一緒に出す
+                var body = req.downloadHandler != null ? req.downloadHandler.text : null;
+                if (!string.IsNullOrEmpty(body) && body.Length > 300) body = body.Substring(0, 300) + "...";
+                Debug.LogWarning($"[DennokoVersionChecker] 取得失敗: url={url} httpCode={req.responseCode} error={req.error} body={body}");
                 return Error(localVersion);
             }
 
             var json = req.downloadHandler != null ? req.downloadHandler.text : null;
-            Log($"response body: {Truncate(json)}");
             if (string.IsNullOrEmpty(json))
             {
-                Warn($"取得失敗: レスポンスが空。url={url} httpCode={req.responseCode}");
+                Debug.LogWarning($"[DennokoVersionChecker] 取得失敗: レスポンスが空。url={url} httpCode={req.responseCode}");
                 return Error(localVersion);
             }
 
             VersionInfo info;
             try { info = JsonUtility.FromJson<VersionInfo>(json); }
-            catch (Exception e) { Warn($"取得失敗: JSON パース失敗: {e.Message} url={url} body={Truncate(json)}"); return Error(localVersion); }
+            catch (Exception e) { Debug.LogWarning($"[DennokoVersionChecker] 取得失敗: JSON パース失敗: {e.Message} url={url}"); return Error(localVersion); }
 
             if (info == null || string.IsNullOrEmpty(info.version))
             {
-                Warn($"取得失敗: version フィールドが空。url={url} body={Truncate(json)}");
+                Debug.LogWarning($"[DennokoVersionChecker] 取得失敗: version フィールドが空。url={url}");
                 return Error(localVersion);
             }
 
             var state = IsNewer(info.version, localVersion) ? State.UpdateAvailable : State.UpToDate;
-            Log($"→ {state} (remote={info.version}, local={localVersion})");
             return new Result
             {
                 State = state,
@@ -146,9 +184,8 @@ namespace Dennoko
         };
 
         /// <summary>
-        /// latest がローカル版より新しいか（＝更新あり）。SemVer 優先、パース不能時は
-        /// 文字列不一致で判定。キャッシュした最新版と現在のローカル版を照合し直す用途で
-        /// 表示側から呼べるよう公開する（State をキャッシュせず都度再計算するのが正しい使い方）。
+        /// latest がローカル版より新しいか（＝更新あり）。State をキャッシュせず、表示側が
+        /// 「保存した最新版 vs 現在のローカル版」で都度再計算できるよう公開する。
         /// </summary>
         public static bool IsUpdateAvailable(string latestVersion, string localVersion)
             => IsNewer(latestVersion, localVersion);
@@ -159,14 +196,13 @@ namespace Dennoko
             var c = Normalize(local);
             if (Version.TryParse(l, out var vLatest) && Version.TryParse(c, out var vLocal))
                 return vLatest > vLocal;
-            // フォールバック: 文字列が異なれば「更新あり」とみなす
             return !string.Equals(l, c, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
         /// 比較用に正規化する。BOM / 先頭 v / プレリリース・ビルドメタデータを除去し、
         /// 2 桁以下（"3", "3.0"）は 3 桁（"3.0.0"）へゼロ埋めする。
-        /// ゼロ埋めしないと Version 型で Build=-1 となり "3.0" &lt; "3.0.0" の誤判定が出る。
+        /// ゼロ埋めしないと Version 型で Build=-1 となり "3.0" < "3.0.0" の誤判定が出る。
         /// </summary>
         private static string Normalize(string v)
         {
@@ -184,24 +220,6 @@ namespace Dennoko
             for (int i = 0; i < 3; i++)
                 padded[i] = (i < parts.Length && !string.IsNullOrEmpty(parts[i])) ? parts[i] : "0";
             return string.Join(".", padded);
-        }
-
-        private static void Log(string msg)
-        {
-            if (VerboseLog) Debug.Log($"[DennokoVersionChecker] {msg}");
-        }
-
-        /// <summary>失敗時の診断用。VerboseLog に関わらず常に出す（チェックはセッション1回のみ）。</summary>
-        private static void Warn(string msg)
-        {
-            Debug.LogWarning($"[DennokoVersionChecker] {msg}");
-        }
-
-        private static string Truncate(string s, int max = 300)
-        {
-            if (string.IsNullOrEmpty(s)) return "(empty)";
-            s = s.Replace("\n", " ").Replace("\r", " ");
-            return s.Length <= max ? s : s.Substring(0, max) + "…";
         }
     }
 }

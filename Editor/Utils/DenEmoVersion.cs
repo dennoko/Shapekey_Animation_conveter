@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -10,6 +11,10 @@ namespace DenEmo
     /// DenEmo の現行バージョン。ローカルの version.json を GUID 経由で取得し、
     /// アップデートチェックの際にリモートの version.json と比較する。
     /// インポート時（コンパイル完了時）や起動時に自動的にアップデートチェックを実行する。
+    ///
+    /// ただし実際にリクエストを飛ばすのは前回から CheckIntervalHours 以上経過したときだけで、
+    /// その間は前回結果（EditorPrefs キャッシュ）を表示に使う。ドメインリロードのたびに
+    /// 取得しに行くと GitHub のレート制限に掛かるため。
     /// </summary>
     [InitializeOnLoad]
     internal static class DenEmoVersion
@@ -49,6 +54,18 @@ namespace DenEmo
         internal const string VerCheckUrlKey    = "DenEmo_VerCheck_Url";
         internal const string VerCheckMessageKey = "DenEmo_VerCheck_Message";
 
+        // 以下はエディタ再起動をまたいで保持する必要があるため EditorPrefs に置く。
+        // SessionState だと再起動のたびにリセットされ、レート制限中でも撃ち続けてしまう。
+        internal const string VerCheckLastAttemptKey   = "DenEmo_VerCheck_LastAttemptUtc";
+        internal const string VerCheckCachedLatestKey  = "DenEmo_VerCheck_CachedLatest";
+        internal const string VerCheckCachedUrlKey     = "DenEmo_VerCheck_CachedUrl";
+        internal const string VerCheckCachedMessageKey = "DenEmo_VerCheck_CachedMessage";
+
+        // 前回リクエストからこの時間が経つまで自動チェックを行わない。ドメインリロード
+        // （スクリプト保存・Play mode 出入りごとに走る）で無制限に再試行すると、GitHub 側の
+        // レート制限を自分で悪化させ「制限 → エラー → 即再試行」のループに入るため。
+        private const double CheckIntervalHours = 6.0;
+
         static DenEmoVersion()
         {
             // 静的コンストラクタはドメインリロード中（アセットインポートやコンパイル完了
@@ -71,6 +88,8 @@ namespace DenEmo
             _currentCache = null;  // ローカル版も読み直す（version.json を直したケースに対応）
             SessionState.SetBool(VerCheckDoneKey, false);
             SessionState.SetBool(VerCheckErrorKey, false);
+            // 明示的なユーザー操作なので間隔は無視する（抑制対象は自動チェックのみ）
+            EditorPrefs.DeleteKey(VerCheckLastAttemptKey);
             StartCheckBackgroundTask();
         }
 
@@ -83,32 +102,82 @@ namespace DenEmo
             bool error = SessionState.GetBool(VerCheckErrorKey, false);
             if (done && !error) return;
             if (_checking) return;
+
+            // 間隔内はリクエストを送らず、前回取得できた結果をそのまま表示に使う。
+            // ここで done を立てないと「確認中...」のまま固まってしまう。
+            if (IsInCheckInterval())
+            {
+                ApplyCachedResult();
+                return;
+            }
+
             _checking = true;
+            EditorPrefs.SetString(VerCheckLastAttemptKey, DateTime.UtcNow.ToString("o"));
 
             Dennoko.DennokoVersionChecker.CheckAsync(
                 RepoOwner, RepoName, RepoBranch, VersionFilePath, Current, OnVersionChecked);
         }
 
+        /// <summary>前回リクエストから CheckIntervalHours 経っていなければ true。</summary>
+        private static bool IsInCheckInterval()
+        {
+            var last = EditorPrefs.GetString(VerCheckLastAttemptKey, string.Empty);
+            if (string.IsNullOrEmpty(last)) return false;
+            if (!DateTime.TryParse(last, CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind, out var lastUtc)) return false;
+
+            // 端末時刻が巻き戻された場合に永久に待ち続けないよう、未来の記録は無効扱いにする
+            var elapsed = DateTime.UtcNow - lastUtc.ToUniversalTime();
+            if (elapsed < TimeSpan.Zero) return false;
+
+            return elapsed.TotalHours < CheckIntervalHours;
+        }
+
+        /// <summary>EditorPrefs に残っている前回の取得結果をセッションへ反映する。</summary>
+        private static void ApplyCachedResult()
+        {
+            var latest = EditorPrefs.GetString(VerCheckCachedLatestKey, string.Empty);
+            SessionState.SetBool(VerCheckDoneKey, true);
+            // 前回も取得できていなければエラー表示のまま（次の間隔明けに再試行される）
+            SessionState.SetBool(VerCheckErrorKey, string.IsNullOrEmpty(latest));
+            SessionState.SetString(VerCheckLatestKey, latest);
+            SessionState.SetString(VerCheckUrlKey, EditorPrefs.GetString(VerCheckCachedUrlKey, string.Empty));
+            SessionState.SetString(VerCheckMessageKey, EditorPrefs.GetString(VerCheckCachedMessageKey, string.Empty));
+
+            RefreshOpenWindows();
+        }
+
         private static void OnVersionChecked(Dennoko.DennokoVersionChecker.Result result)
         {
             _checking = false;
+            bool failed = result.State == Dennoko.DennokoVersionChecker.State.Error;
+
             SessionState.SetBool(VerCheckDoneKey, true);
-            SessionState.SetBool(VerCheckErrorKey, result.State == Dennoko.DennokoVersionChecker.State.Error);
+            SessionState.SetBool(VerCheckErrorKey, failed);
             SessionState.SetString(VerCheckLatestKey, result.LatestVersion ?? string.Empty);
             SessionState.SetString(VerCheckUrlKey, result.Url ?? string.Empty);
             SessionState.SetString(VerCheckMessageKey, result.Message ?? string.Empty);
 
-            // すでにエディタウィンドウが開かれている場合は再描画を促す
-            var windows = Resources.FindObjectsOfTypeAll<DenEmoWindow>();
-            if (windows != null && windows.Length > 0)
+            // 成功時のみ永続キャッシュを更新する。失敗で上書きすると、間隔内の表示から
+            // 「前回取得できていた最新版」が消えてしまうため。
+            if (!failed)
             {
-                foreach (var w in windows)
-                {
-                    if (w != null)
-                    {
-                        w.LoadVersionResultFromSessionState();
-                    }
-                }
+                EditorPrefs.SetString(VerCheckCachedLatestKey, result.LatestVersion ?? string.Empty);
+                EditorPrefs.SetString(VerCheckCachedUrlKey, result.Url ?? string.Empty);
+                EditorPrefs.SetString(VerCheckCachedMessageKey, result.Message ?? string.Empty);
+            }
+
+            RefreshOpenWindows();
+        }
+
+        /// <summary>すでに開かれているウィンドウに取得結果を反映させる。</summary>
+        private static void RefreshOpenWindows()
+        {
+            var windows = Resources.FindObjectsOfTypeAll<DenEmoWindow>();
+            if (windows == null) return;
+            foreach (var w in windows)
+            {
+                if (w != null) w.LoadVersionResultFromSessionState();
             }
         }
 
