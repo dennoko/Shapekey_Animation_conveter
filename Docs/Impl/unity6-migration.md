@@ -3,7 +3,7 @@
 - 調査日: 2026-09-06
 - 現行: Unity 2022.3.22f1 / Built-in RP
 - 目標: Unity 6 (6000.0 LTS) / **BiRP 維持**
-- 共通調査: [`../../../Docs/Impl/unity6-migration-overview.md`](../../../Docs/Impl/unity6-migration-overview.md)
+- 共通調査: [`unity6-migration-overview.md`](unity6-migration-overview.md)
 
 ## 判定
 
@@ -22,7 +22,7 @@ UI Toolkit / フォントの見た目に限られる。
 | 外部依存 | **NDMF**（内部 API リフレクション）、**VRChat SDK**（リフレクション参照のみ） |
 
 **VRChat SDK を直接型参照していない**点が重要。SDK 型は文字列＋リフレクションで解決するため、
-**SDK 未導入 / SDK が Unity 6 未対応でもコンパイルが通り、単体検証を先行できる**。
+**SDK 未導入でもコンパイルが通り、単体検証を先行できる**。
 
 ## 検出事項
 
@@ -152,7 +152,7 @@ Unity 6 で `AnimationUtility` の API 変更は **なし**。**修正不要。*
 
 ### フェーズ 2（Unity 6 検証プロジェクト・先行実施可）
 
-**VRChat SDK を直接型参照していないため、SDK の Unity 6 対応を待たずに検証を開始できる。**
+**VRChat SDK を直接型参照していないため、SDK に依存せず検証を開始できる。**
 Unity 6 の空プロジェクトに `DenEmo/` をコピーして検証する。
 （NDMF プレビュー連携のみ NDMF 対応版が必要。それ以外の機能は SDK/NDMF なしで確認できる。）
 
