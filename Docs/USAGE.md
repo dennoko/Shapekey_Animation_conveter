@@ -317,7 +317,9 @@ Below all tracks, a `↔` drag handle appears at each frame that has keys. Drag 
 ---
 #### Keyboard Shortcuts
 
-Active when a clip is loaded and no text field is focused.
+Active anywhere in the DenEmo window while the timeline is visible with a clip loaded and no text field (frame number, search box, ...) has keyboard focus. When the timeline is detached, the shortcuts work in that separate window instead.
+
+While a shape key slider has focus, `←` / `→` are left to the slider for value adjustment; every other shortcut still applies.
 
 | Key | Action |
 |-----|--------|

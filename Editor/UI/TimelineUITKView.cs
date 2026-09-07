@@ -120,6 +120,9 @@ namespace DenEmo.UI
         private static readonly Color ScrubberWhite = new Color(1f, 1f, 1f, 0.85f);
         private static readonly Color CurrentLine   = new Color(1f, 1f, 1f, 0.4f);
 
+        // ショートカットを登録したパネルルート（ビューがツリーから外れたら解除する）
+        private VisualElement _shortcutHost;
+
         private bool   _showClipField;
         private bool   _isSeparateWindow;
         private bool   _requireZoomModifier = true;
@@ -188,6 +191,8 @@ namespace DenEmo.UI
             BuildTimelineArea();
 
             _root.RegisterCallback<CustomStyleResolvedEvent>(OnCustomStyleResolved);
+            _root.RegisterCallback<AttachToPanelEvent>(evt => HookShortcuts(evt.destinationPanel));
+            _root.RegisterCallback<DetachFromPanelEvent>(_ => UnhookShortcuts());
             // 現在時刻・再生の追従（表示中のみ）
             _root.schedule.Execute(Tick).Every(33);
 
@@ -1437,6 +1442,95 @@ namespace DenEmo.UI
                 evt.StopPropagation();
             });
         }
+
+        // ─── Keyboard shortcuts ───────────────────────────────────────────────
+        // Space: 再生/停止  ← / →: 1 フレーム移動  , / .: 前後のキーへ
+        // Delete / Backspace: 現在フレームの全キー削除（確認なし・Undo 可）
+        // Ctrl+C / Ctrl+V: 現在フレームのコピー / ペースト
+
+        /// <summary>
+        /// パネルのルートに TrickleDown で登録し、フォーカス中の子コントロールより先にキーを受け取る。
+        /// フォーカスが無いときのキーもパネルルートへ届くため、ウィンドウ全体で効く。
+        /// </summary>
+        private void HookShortcuts(IPanel panel)
+        {
+            UnhookShortcuts();
+            _shortcutHost = panel?.visualTree;
+            _shortcutHost?.RegisterCallback<KeyDownEvent>(OnShortcutKeyDown, TrickleDown.TrickleDown);
+        }
+
+        private void UnhookShortcuts()
+        {
+            if (_shortcutHost == null) return;
+            _shortcutHost.UnregisterCallback<KeyDownEvent>(OnShortcutKeyDown, TrickleDown.TrickleDown);
+            _shortcutHost = null;
+        }
+
+        private void OnShortcutKeyDown(KeyDownEvent evt)
+        {
+            // 非表示のタブ／クリップ未設定のときは何もしない（_active はホスト側が更新する）
+            if (!_active || _root == null || _mode?.ClipModel?.Clip == null) return;
+            if (evt.altKey || evt.shiftKey) return;
+            if (IsTextInputFocused()) return;
+
+            var m = _mode.ClipModel;
+            bool ctrl = evt.ctrlKey || evt.commandKey;
+            bool handled = true;
+
+            switch (evt.keyCode)
+            {
+                case KeyCode.Space  when !ctrl: TogglePlay();  break;
+                case KeyCode.Comma  when !ctrl: GoToPrevKey(); break;
+                case KeyCode.Period when !ctrl: GoToNextKey(); break;
+
+                // 矢印はフォーカス中のスライダーの値調整を優先する（該当時は default へ落ちて素通し）
+                case KeyCode.LeftArrow  when !ctrl && !IsSliderFocused(): StepFrame(-1); break;
+                case KeyCode.RightArrow when !ctrl && !IsSliderFocused(): StepFrame(+1); break;
+
+                case KeyCode.Delete    when !ctrl:
+                case KeyCode.Backspace when !ctrl:
+                    // ショートカットからの削除は確認ダイアログを出さない（Undo で戻せる）
+                    handled = m.HasAnyKeyframeAt(m.CurrentTime);
+                    if (handled) DeleteFrameKeys(m.SnapToFrame(m.CurrentTime), confirm: false);
+                    break;
+
+                case KeyCode.C when ctrl:
+                    CopyFrame(m.SnapToFrame(m.CurrentTime));
+                    break;
+
+                case KeyCode.V when ctrl:
+                    handled = _clipboard.Count > 0;
+                    if (handled) PasteAtCurrent();
+                    break;
+
+                default: handled = false; break;
+            }
+
+            if (!handled) return;
+            evt.StopPropagation();
+            evt.PreventDefault();
+            _window.Repaint();
+        }
+
+        /// <summary>テキスト入力（検索欄・フレーム番号・FPS / 長さ / 速度）にフォーカスがあるか。</summary>
+        private bool IsTextInputFocused()
+        {
+            for (var e = FocusedElement(); e != null; e = e.parent)
+                if (e is TextField || e is IntegerField || e is FloatField ||
+                    e is DoubleField || e is LongField) return true;
+            return false;
+        }
+
+        /// <summary>シェイプキーのスライダーにフォーカスがあるか（矢印キーは値調整に譲る）。</summary>
+        private bool IsSliderFocused()
+        {
+            for (var e = FocusedElement(); e != null; e = e.parent)
+                if (e is Slider || e is SliderInt || e is MinMaxSlider) return true;
+            return false;
+        }
+
+        private VisualElement FocusedElement()
+            => _root.panel?.focusController?.focusedElement as VisualElement;
 
         // ─── Theme color resolution ───────────────────────────────────────────
 
