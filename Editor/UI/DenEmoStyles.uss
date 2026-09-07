@@ -389,6 +389,25 @@
     margin-top: 2px;
 }
 
+/* フレーム移動ハンドル行（トラック下部）: ↔ ドラッグでフレーム内の全キーを移動 */
+.dennoko-root .dennoko-tl-action-lane {
+    background-color: var(--dennoko-surface-0);
+    border-top-width: 1px;
+    border-top-color: var(--dennoko-outline);
+}
+
+/* ↔ ハンドル（レーン基準の絶対配置） */
+.dennoko-root .dennoko-tl-action-handle {
+    position: absolute;
+    top: 0;
+    width: 20px;
+    height: 14px;
+    font-size: 10px;
+    -unity-text-align: middle-center;
+    color: var(--dennoko-text-tertiary);
+    cursor: slide-arrow;
+}
+
 /* ─── FX モード（アバターへ適用） ────────────────────────── */
 
 /* 情報バンド（プレビュー中 / 適用結果） */

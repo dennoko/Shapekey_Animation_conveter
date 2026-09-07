@@ -28,6 +28,8 @@ namespace DenEmo.UI
         private const float RIGHT_PADDING    = 16f;
         private const float DIAMOND_SIZE     = 5f;
         private const float MAX_TRACKS_HEIGHT = 160f;
+        private const float ACTION_ROW_HEIGHT = 14f;
+        private const float ACTION_KEY_WIDTH = 20f;
         private const float MIN_VIEW_RANGE   = 1f / 50f;
 
         // ─── Context ──────────────────────────────────────────────────────────
@@ -82,6 +84,17 @@ namespace DenEmo.UI
         private VisualElement _rulerLane, _scrubLane, _scrollbarLane;
         private ScrollView    _tracksScroll;
         private Label         _noTracksLabel;
+
+        // フレーム移動ハンドル行（トラック下部）
+        private VisualElement _actionLane;
+        private readonly List<ActionKeyWidget> _actionKeys = new List<ActionKeyWidget>();
+
+        /// <summary>フレーム移動ハンドル行の 1 キー分（↔ ドラッグでフレーム内の全キーを移動）。</summary>
+        private class ActionKeyWidget
+        {
+            public Label Handle;
+            public float Time;
+        }
 
         // ルーラーの目盛りラベルプール
         private readonly List<Label> _frameLabels = new List<Label>();
@@ -336,6 +349,7 @@ namespace DenEmo.UI
             _rulerLane.generateVisualContent += ctx => DrawRuler(ctx);
             _rulerLane.RegisterCallback<GeometryChangedEvent>(_ => LayoutRulerLabels());
             RegisterSeekAndZoom(_rulerLane);
+            RegisterContextMenu(_rulerLane);
             rulerRow.Add(_rulerLane);
             area.Add(rulerRow);
 
@@ -344,6 +358,7 @@ namespace DenEmo.UI
             _scrubLane = Lane(SCRUBBER_HEIGHT, "dennoko-tl-scrub");
             _scrubLane.generateVisualContent += ctx => DrawScrubber(ctx);
             RegisterSeekAndZoom(_scrubLane);
+            RegisterContextMenu(_scrubLane);
             scrubRow.Add(_scrubLane);
             area.Add(scrubRow);
 
@@ -364,6 +379,9 @@ namespace DenEmo.UI
             _noTracksLabel.AddToClassList("dennoko-text-tertiary");
             _noTracksLabel.AddToClassList("dennoko-wrap");
             area.Add(_noTracksLabel);
+
+            // ── フレーム移動ハンドル行（トラック下部） ──
+            BuildActionRow(area);
 
             _body.Add(area);
         }
@@ -447,6 +465,8 @@ namespace DenEmo.UI
             _btnNextFrame.tooltip = DenEmoLoc.T("ui.timeline.nextFrame.tip");
             _btnNextKey.tooltip   = DenEmoLoc.T("ui.timeline.nextKey.tip");
             _btnEnd.tooltip       = DenEmoLoc.T("ui.timeline.goEnd.tip");
+            foreach (var w in _actionKeys)
+                w.Handle.tooltip = DenEmoLoc.T("ui.timeline.moveFrame.tip");
         }
 
         // ─── State refresh ────────────────────────────────────────────────────
@@ -486,6 +506,7 @@ namespace DenEmo.UI
             foreach (var track in tracks)
                 _tracksScroll.Add(MakeTrackRow(track));
 
+            LayoutActionRow();
             _lastRevision = _mode.ClipModel.Revision;
         }
 
@@ -615,6 +636,7 @@ namespace DenEmo.UI
         {
             foreach (var lane in _lanes) lane.MarkDirtyRepaint();
             LayoutRulerLabels();
+            LayoutActionRow();
         }
 
         // ─── Coordinate helpers ───────────────────────────────────────────────
@@ -954,7 +976,7 @@ namespace DenEmo.UI
                 if (evt.button == 1)
                 {
                     if (hit >= 0) ShowKeyContextMenu(track.ShapeName, track.KeyTimes[hit]);
-                    else ShowTrackContextMenu();
+                    else ShowTimelineContextMenu();
                     evt.StopPropagation();
                     return;
                 }
@@ -976,30 +998,8 @@ namespace DenEmo.UI
             });
             lane.RegisterCallback<PointerMoveEvent>(evt =>
             {
-                var m = _mode.ClipModel;
                 if (!_draggingKey || _dragShape != track.ShapeName) { UpdateHoverTip(lane, track, evt.localPosition.x); return; }
-                float w = lane.contentRect.width;
-                float t = XToTime(evt.localPosition.x, w);
-                int targetFrame = Mathf.RoundToInt(Mathf.Clamp(t * m.FPS, 0f, m.TotalFrames));
-                if (targetFrame != _dragFrame)
-                {
-                    int reached = _mode.Editor.MoveKeys(_dragFrame, targetFrame, track.ShapeName, recordUndo: !_dragUndoRecorded);
-                    if (reached != _dragFrame)
-                    {
-                        _dragUndoRecorded = true;
-                        _dragFrame = reached;
-                        m.CurrentTime = m.FrameToTime(reached);
-                        _mode.Preview.SampleAt(m.CurrentTime);
-                        _window.Repaint();
-                    }
-                    if (reached != targetFrame)
-                    {
-                        _blockFlashFrame = reached + (targetFrame > reached ? 1 : -1);
-                        _blockFlashUntil = EditorApplication.timeSinceStartup + 0.4;
-                    }
-                    RefreshValues();
-                    MarkAllDirty();
-                }
+                MoveDraggedKeys(evt.localPosition.x, lane.contentRect.width, track.ShapeName);
                 evt.StopPropagation();
             });
             lane.RegisterCallback<PointerUpEvent>(evt =>
@@ -1009,6 +1009,37 @@ namespace DenEmo.UI
                 lane.ReleasePointer(evt.pointerId);
                 evt.StopPropagation();
             });
+        }
+
+        /// <summary>
+        /// ドラッグ中のキーをレーン内 X 座標が指すフレームへ移動する。
+        /// shapeName = null でそのフレームの全トラックのキーをまとめて移動する。
+        /// Undo スナップショットはジェスチャ内で 1 回だけ取る（recordUndo: !_dragUndoRecorded）。
+        /// </summary>
+        private void MoveDraggedKeys(float localX, float laneW, string shapeName)
+        {
+            var m = _mode.ClipModel;
+            float t = XToTime(localX, laneW);
+            int targetFrame = Mathf.RoundToInt(Mathf.Clamp(t * m.FPS, 0f, m.TotalFrames));
+            if (targetFrame == _dragFrame) return;
+
+            int reached = _mode.Editor.MoveKeys(_dragFrame, targetFrame, shapeName, recordUndo: !_dragUndoRecorded);
+            if (reached != _dragFrame)
+            {
+                _dragUndoRecorded = true;
+                _dragFrame = reached;
+                m.CurrentTime = m.FrameToTime(reached);
+                _mode.Preview.SampleAt(m.CurrentTime);
+                _window.Repaint();
+            }
+            if (reached != targetFrame)
+            {
+                // 他キーにブロックされた: 停止位置の隣にあるブロック元キーを一瞬ハイライトする
+                _blockFlashFrame = reached + (targetFrame > reached ? 1 : -1);
+                _blockFlashUntil = EditorApplication.timeSinceStartup + 0.4;
+            }
+            RefreshValues();
+            MarkAllDirty();
         }
 
         private int HitKey(AnimationTrack track, float x, float laneW)
@@ -1143,6 +1174,159 @@ namespace DenEmo.UI
             _window.Repaint();
         }
 
+        // ─── Action row（フレーム単位のドラッグ移動ハンドル） ─────────────────
+
+        /// <summary>
+        /// トラック下部のフレーム移動ハンドル行を作る。キーのある各時刻に ↔ ハンドルを置き、
+        /// ドラッグでそのフレームの全トラックのキーをまとめて移動する。
+        /// キーの一括追加・削除はレーンの右クリックメニュー（ShowTimelineContextMenu）から行う。
+        /// </summary>
+        private void BuildActionRow(VisualElement area)
+        {
+            var row = Strip(out _);
+
+            _actionLane = new VisualElement();
+            _actionLane.AddToClassList("dennoko-tl-lane");
+            _actionLane.AddToClassList("dennoko-tl-action-lane");
+            _actionLane.style.height = ACTION_ROW_HEIGHT;
+            _actionLane.RegisterCallback<GeometryChangedEvent>(_ => LayoutActionRow());
+            RegisterContextMenu(_actionLane);
+            row.Add(_actionLane);
+
+            area.Add(row);
+        }
+
+        /// <summary>
+        /// ハンドル行のキー単位ウィジェットを、現在のキー時刻とビュー範囲に合わせて配置する。
+        /// ルーラーラベルと同じくプール再利用で、描画外（ツリー変更が許される文脈）から呼ぶ。
+        /// </summary>
+        private void LayoutActionRow()
+        {
+            if (_actionLane == null || _mode?.ClipModel?.Clip == null) return;
+            var m = _mode.ClipModel;
+            float w = _actionLane.contentRect.width;
+            if (w <= 0f || m.ClipLength <= 0f) { HideExtraActionKeys(0); return; }
+
+            int used = 0;
+            foreach (float kTime in m.AllKeyTimes)
+            {
+                float kx = TimeToX(kTime, w);
+                if (kx < -ACTION_KEY_WIDTH || kx > w + ACTION_KEY_WIDTH) continue;
+                var widget = GetActionKey(used++);
+                widget.Time = kTime;
+                widget.Handle.style.display = DisplayStyle.Flex;
+                widget.Handle.style.left = kx - ACTION_KEY_WIDTH * 0.5f;
+            }
+            HideExtraActionKeys(used);
+        }
+
+        private ActionKeyWidget GetActionKey(int idx)
+        {
+            if (idx < _actionKeys.Count) return _actionKeys[idx];
+
+            var widget = new ActionKeyWidget();
+            widget.Handle = new Label("↔") { tooltip = DenEmoLoc.T("ui.timeline.moveFrame.tip") };
+            widget.Handle.AddToClassList("dennoko-tl-action-handle");
+            RegisterFrameDrag(widget);
+
+            _actionLane.Add(widget.Handle);
+            _actionKeys.Add(widget);
+            return widget;
+        }
+
+        private void HideExtraActionKeys(int usedCount)
+        {
+            for (int i = usedCount; i < _actionKeys.Count; i++)
+                _actionKeys[i].Handle.style.display = DisplayStyle.None;
+        }
+
+        /// <summary>↔ ハンドル: そのフレームにある全トラックのキーをまとめて移動する（shapeName = null）。</summary>
+        private void RegisterFrameDrag(ActionKeyWidget widget)
+        {
+            var handle = widget.Handle;
+            handle.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0) return;
+                _draggingKey = true;
+                _dragFrame = _mode.ClipModel.TimeToFrame(widget.Time);
+                _dragShape = null;
+                _dragUndoRecorded = false;
+                handle.CapturePointer(evt.pointerId);
+                evt.StopPropagation();
+            });
+            handle.RegisterCallback<PointerMoveEvent>(evt =>
+            {
+                if (!_draggingKey || _dragShape != null) return;
+                float w = _actionLane.contentRect.width;
+                float x = _actionLane.WorldToLocal(new Vector2(evt.position.x, evt.position.y)).x;
+                MoveDraggedKeys(x, w, null);
+                evt.StopPropagation();
+            });
+            handle.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (!_draggingKey) return;
+                _draggingKey = false;
+                handle.ReleasePointer(evt.pointerId);
+                evt.StopPropagation();
+            });
+        }
+
+        /// <summary>
+        /// リスト表示中（検索・フィルター後）の全シェイプのキーを、現在時刻へ一括挿入する。
+        /// Undo は AnimationClipEditor.RecordKeys が 1 スナップショットにまとめる。
+        /// </summary>
+        private void InsertKeysAtCurrentFrame()
+        {
+            if (_model == null || _mode.ClipModel.Clip == null) return;
+            var m = _mode.ClipModel;
+
+            var entries = new List<(string, float)>();
+            foreach (var item in _model.Items)
+            {
+                if (!IsInsertTarget(item)) continue;
+                var smr = item.OwnerSmr != null ? item.OwnerSmr : _model.TargetSkinnedMesh;
+                if (smr == null || smr.sharedMesh == null) continue;
+                if (item.Index < 0 || item.Index >= smr.sharedMesh.blendShapeCount) continue;
+                entries.Add((item.Name, smr.GetBlendShapeWeight(item.Index)));
+            }
+            if (entries.Count == 0) return;
+
+            _mode.Editor.RecordKeys(entries, m.CurrentTime, _mode.CurrentInterp);
+            _mode.ClearUnrecordedTweaks();
+            _mode.Preview.SampleAt(m.CurrentTime);
+            RefreshStructure();
+            _window.Repaint();
+        }
+
+        private static bool IsInsertTarget(ShapeKeyItem item)
+            => item.IsVisible && !item.IsVrcShape && !item.IsLipSyncShape;
+
+        private int CountInsertTargets()
+        {
+            if (_model == null) return 0;
+            int n = 0;
+            foreach (var item in _model.Items)
+                if (IsInsertTarget(item)) n++;
+            return n;
+        }
+
+        /// <summary>
+        /// 指定時刻にある全トラックのキーを削除する（Undo は 1 スナップショット）。
+        /// confirm=false はショートカット用（ダイアログを出さず Undo で戻す前提）。
+        /// </summary>
+        private void DeleteFrameKeys(float kTime, bool confirm = true)
+        {
+            if (!_mode.ClipModel.HasAnyKeyframeAt(kTime)) return;
+            if (confirm && !EditorUtility.DisplayDialog(
+                DenEmoLoc.T("dlg.timeline.deleteFrame.title"),
+                DenEmoLoc.Tf("dlg.timeline.deleteFrame.msg", kTime.ToString("F2")),
+                DenEmoLoc.T("dlg.yes"), DenEmoLoc.T("dlg.no"))) return;
+            _mode.Editor.DeleteKeysAtTime(kTime);
+            _mode.Preview.SampleAt(_mode.ClipModel.CurrentTime);
+            RefreshStructure();
+            _window.Repaint();
+        }
+
         // ─── Clipboard / context menus ────────────────────────────────────────
 
         private void CopyFrame(float time)
@@ -1181,6 +1365,8 @@ namespace DenEmo.UI
         {
             var m = _mode.ClipModel;
             var menu = new GenericMenu();
+            AddCurrentFrameItems(menu);
+            menu.AddSeparator("");
             menu.AddItem(new GUIContent(DenEmoLoc.T("ui.timeline.menu.delete")), false, () =>
             {
                 _mode.Editor.DeleteKey(shapeName, kTime);
@@ -1190,10 +1376,7 @@ namespace DenEmo.UI
             });
             menu.AddSeparator("");
             menu.AddItem(new GUIContent(DenEmoLoc.T("ui.timeline.menu.copyFrame")), false, () => CopyFrame(kTime));
-            if (_clipboard.Count > 0)
-                menu.AddItem(new GUIContent(DenEmoLoc.T("ui.timeline.menu.paste")), false, PasteAtCurrent);
-            else
-                menu.AddDisabledItem(new GUIContent(DenEmoLoc.T("ui.timeline.menu.paste")));
+            AddPasteItem(menu);
             menu.AddSeparator("");
             void AddInterp(string label, InterpolationType interp)
             {
@@ -1212,14 +1395,47 @@ namespace DenEmo.UI
             menu.ShowAsContext();
         }
 
-        private void ShowTrackContextMenu()
+        /// <summary>ダイヤ以外（ルーラー / スクラバー / ハンドル行 / トラックの余白）の右クリックメニュー。</summary>
+        private void ShowTimelineContextMenu()
         {
+            if (_mode.ClipModel.Clip == null) return;
             var menu = new GenericMenu();
-            if (_clipboard.Count > 0)
-                menu.AddItem(new GUIContent(DenEmoLoc.T("ui.timeline.menu.paste")), false, PasteAtCurrent);
-            else
-                menu.AddDisabledItem(new GUIContent(DenEmoLoc.T("ui.timeline.menu.paste")));
+            AddCurrentFrameItems(menu);
+            menu.AddSeparator("");
+            AddPasteItem(menu);
             menu.ShowAsContext();
+        }
+
+        /// <summary>現在フレームへのキー一括追加・一括削除。すべての右クリックメニューの先頭に置く。</summary>
+        private void AddCurrentFrameItems(GenericMenu menu)
+        {
+            var m = _mode.ClipModel;
+            menu.AddItem(new GUIContent(DenEmoLoc.Tf("ui.timeline.menu.insertAllN", CountInsertTargets())),
+                false, InsertKeysAtCurrentFrame);
+
+            var deleteLabel = new GUIContent(DenEmoLoc.T("ui.timeline.menu.deleteFrame"));
+            if (m.HasAnyKeyframeAt(m.CurrentTime))
+                menu.AddItem(deleteLabel, false, () => DeleteFrameKeys(m.SnapToFrame(m.CurrentTime)));
+            else
+                menu.AddDisabledItem(deleteLabel);
+        }
+
+        private void AddPasteItem(GenericMenu menu)
+        {
+            var paste = new GUIContent(DenEmoLoc.T("ui.timeline.menu.paste"));
+            if (_clipboard.Count > 0) menu.AddItem(paste, false, PasteAtCurrent);
+            else                      menu.AddDisabledItem(paste);
+        }
+
+        /// <summary>レーンの右クリックで共通メニューを開く。</summary>
+        private void RegisterContextMenu(VisualElement lane)
+        {
+            lane.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 1) return;
+                ShowTimelineContextMenu();
+                evt.StopPropagation();
+            });
         }
 
         // ─── Theme color resolution ───────────────────────────────────────────

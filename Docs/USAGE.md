@@ -298,17 +298,21 @@ One track row appears for each shape key that has at least one keyframe. Each ro
 
   | Menu item | Action |
   |-----------|--------|
+  | Insert Keys at Current Frame (N visible) | Inserts keys at the current playhead time for all N shape keys currently listed, using their current values. Works whether or not REC is on; when a search or filter is active only the visible shape keys are affected (N is that count) |
+  | Delete All Keys at Current Frame | Deletes the keys of every track at the current playhead time after confirmation. Greyed out when there is no key at that time |
   | Delete | Removes that keyframe |
   | Copy frame | Copies the value and interpolation of all tracks at that frame to the DenEmo internal clipboard |
   | Paste at current time | Pastes clipboard contents at the current playhead position (greyed out when empty) |
   | Step / Linear / Ease | Changes the interpolation of that single keyframe |
 
-- **Right-click on empty track area** - right-clicking anywhere on the track that is not a diamond shows a "Paste at current time" menu, so you can paste without targeting a specific keyframe handle
+- **Right-click on empty timeline area** - right-clicking the ruler, the scrubber, the frame move handle row, or any part of a track that is not a diamond shows a menu with "Insert Keys at Current Frame", "Delete All Keys at Current Frame" and "Paste at current time". The ruler and scrubber stay right-clickable even when there are no tracks yet, so you can always reach the bulk insert
 
 The label column width can be resized by dragging the vertical divider between the label and the track area.
 
-**Frame delete row (bottom)**
-Below all tracks, each frame that has any keyframe shows a ✕ button. Pressing it deletes all keyframes across all tracks at that frame - removing a complete pose from one point in time.
+**Frame move handle row (bottom)**
+Below all tracks, a `↔` drag handle appears at each frame that has keys. Drag a handle left or right to move all keyframes at that frame - across every track - to another frame. If another key blocks the way, the move stops just before it and the blocking key flashes briefly.
+
+> Example: to record the current pose of every shape at a specific frame with REC off, move the scrubber to that frame, right-click the timeline and choose "Insert Keys at Current Frame". A single `Ctrl+Z` undoes the whole insert.
 
 ---
 #### Keyboard Shortcuts
@@ -331,7 +335,7 @@ Active when a clip is loaded and no text field is focused.
 | | Copy | Paste |
 |--|------|-------|
 | **Keyboard** | `Ctrl+C` - copies all keys at the current frame | `Ctrl+V` - pastes at the current frame |
-| **Right-click menu** | Right-click a diamond -> **Copy frame** (copies all tracks at that frame) | Right-click a diamond or empty track area -> **Paste at current time** |
+| **Right-click menu** | Right-click a diamond -> **Copy frame** (copies all tracks at that frame) | Right-click a diamond or empty timeline area -> **Paste at current time** |
 
 Both methods share the same internal clipboard. You can copy via right-click and paste with `Ctrl+V`, or vice versa.
 
